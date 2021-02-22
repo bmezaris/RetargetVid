@@ -13,13 +13,24 @@ We selected a subset of 200 videos from the publicly available videos of the [DH
 
 We invited 6 human subjects and asked them to select the region of each frame that would be ideal to be included in a cropped version of the video. Specifically, we assigned them the task of generating two cropped versions for each video, one with target aspect ratio of 1:3 and another one with target aspect ratio of 3:1. We selected these extreme target aspect ratios (despite not being used in real-life applications) in order to identify human preferences under very demanding circumstances. Moreover, less extreme target aspect ratios can still be evaluated by assessing to what extent an e.g. 9:16 crop window includes the 1:3 manually specified window.
 
-Our crop window annotations for each video are in the form of text files, where the *i*-th line contains the top-left coordinates of the crop window for the *i*-th frame. There are 2400 annotation text files in total (200 videos * 2 target aspect ratios * 6 annotator subjects. The annotation text file are named *$video_id$-$target_aspect ratio$.txt*, where *$video_id$* is the original video filename and $target_aspect ratio$ is the target aspect ratio (e.g. 1-3 or 3-1). The annotation text files can be found in the *annotations* folder of this repository.
+Our crop window annotations for each video are in the form of text files, where the *i*-th line contains the top-left coordinates of the crop window for the *i*-th frame. There are 2400 annotation text files in total (200 videos * 2 target aspect ratios * 6 annotator subjects. The annotation text file are named *$video_id$-$target_aspect ratio$.txt*, where *$video_id$* is the original video filename and $target_aspect ratio$ is the target aspect ratio (i.e. "1-3" or "3-1"). The annotation text files can be found in the *annotations* folder of this repository, where a separate zip file is provided for each annotator.
+
 
 ## Annotator Software
 To assist the annotators in their task we implemented a graphical user interface tool which facilitates the navigation throughout the video, allows the user to set a crop window for each frame through simple drag-and-drop mouse operations, and overlays the crop window on the video frames to allow for the quick inspection of the user's decisions.
 
-The software was implemented in C# and the source code is available in the *annotator_software* folder of this repository, in separate sub-folder for each subject.
+The software was implemented in C# and the source code is available in the *annotator_software* folder of this repository.
 
+## Evaluation Software
+To evalaute the results of your method with the respect to the ground truth annotations of the **RetargetVid** dataset download the evaluation software. Then, create a new sub-folder in the *results* folder. For each of thee 200 videos of the dataset, create a text file following the naming convension *$video_id$-$target_aspect ratio$.txt*, where *$video_id$* is the original video filename and $target_aspect ratio$ is the target aspect ratio (i.e. "1-3" or "3-1"). Each line of this text file must have the crop window (top, left, bottom, right) coordinates. Finally, run the *retargetvid_eval.py* python script and the evaluation results for sub-folder in the *results* folder will be displayed.
+
+In the *results* folder we include two sub-folders:
+* *smarcrop* with the results of our method, and
+* *autoflip* with the results of Google's [AutoFlip](https://google.github.io/mediapipe/solutions/autoflip) method
+ 
+The similarity is calculated in terms of the mean of the Intersection over Union (IoU) scores of all crop windows.
+
+The software was implemented in Python 3 and the source code is available in the *evaluation_software* folder of this repository.
 
 ## Method
 We argue that cropping methods are more suitable for video aspect ratio transformation when the minimization of semantic distortions is a prerequisite. For our method, we utilize visual saliency to find the image regions of attention, and we employ a filtering-through-clustering technique to select the main region of focus. Therefore, we present a new, rather simple, yet fast and well-performing, video cropping method, which selects the main focus out of the multiple possible salient regions of the video by introducing a new filtering-through-clustering processing step.
@@ -27,7 +38,7 @@ We argue that cropping methods are more suitable for video aspect ratio transfor
 Our method is implemented in Python 3 and the source is available in the *smartcrop* folder of this repository.
 
 ## Prerequisities
-To run our SmartCrop method you will need Python 3. You must also wave installed the following packages (in parenthesis are the recommended packages version to instalL):
+To run our SmartCrop method you will need Python 3. You must also wave installed the following packages (in parenthesis are the recommended packages version to install):
 
 * TensorFlow (tensorflow-gpu==1.14.0)
 * PyTorch (torch==1.7.1+cu110)
@@ -35,6 +46,8 @@ To run our SmartCrop method you will need Python 3. You must also wave installed
 * OpenCV (opencv-python==4.2.0)
 * SciPy (scipy==1.5.1)
 * hdbscan (hdbscan==0.8.26)
+
+To run the evaluator software you will just need Python 3.
 
 To run the annotator software you will need .ΝΕΤ framework 3.1 runtimes for your version of Windows (you can download this from [here](https://dotnet.microsoft.com/download)).
 
