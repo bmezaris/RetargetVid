@@ -22,13 +22,14 @@ To assist the annotators in their task we implemented a graphical user interface
 The software was implemented in C# and the source code is available in the *annotator_software* folder of this repository.
 
 ## Evaluation Software
-To evalaute the results of your method with the respect to the ground truth annotations of the **RetargetVid** dataset download the evaluation software. Then, create a new sub-folder in the *results* folder. For each of thee 200 videos of the dataset, create a text file following the naming convension *$video_id$-$target_aspect ratio$.txt*, where *$video_id$* is the original video filename and $target_aspect ratio$ is the target aspect ratio (i.e. "1-3" or "3-1"). Each line of this text file must have the crop window (top, left, bottom, right) coordinates. Finally, run the *retargetvid_eval.py* python script and the evaluation results for sub-folder in the *results* folder will be displayed.
+To evalaute the results of your method with the respect to the ground truth annotations of the **RetargetVid** dataset download the evaluation software and the annotations folder. Then, create a new sub-folder in the *results* folder. For each of the 200 videos of the dataset, create a text file following the naming convension *$video_id$-$target_aspect ratio$.txt*, where *$video_id$* is the original video filename and $target_aspect ratio$ is the target aspect ratio (i.e. "1-3" or "3-1"). Each line of this text file must have the crop window (top, left, bottom, right) coordinates. Finally, run the *retargetvid_eval.py* python script giving as a command line argument the path to the top-level folder of the annotation files. The evaluation results for every sub-folder in the *results* folder will be displayed, additionally warning you if there were any errors in the process or any incomplete annotations were found.
+
+The evaluation results are calculated as the similarity in terms of the mean of the Intersection over Union (IoU) scores of all crop windows between each run (i.e. sub-folder in the *results* folder) and the dataset's crop windows.
 
 In the *results* folder we include two sub-folders:
 * *smarcrop* with the results of our method, and
 * *autoflip* with the results of Google's [AutoFlip](https://google.github.io/mediapipe/solutions/autoflip) method
  
-The similarity is calculated in terms of the mean of the Intersection over Union (IoU) scores of all crop windows.
 
 The software was implemented in Python 3 and the source code is available in the *evaluation_software* folder of this repository.
 
