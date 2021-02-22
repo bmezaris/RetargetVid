@@ -49,10 +49,11 @@ To run our SmartCrop method you will need Python 3. You must also wave installed
 
 * TensorFlow (tensorflow-gpu==1.14.0)
 * PyTorch (torch==1.7.1+cu110)
+* hdbscan (hdbscan==0.8.26)
 * ffmpeg (ffmpeg==1.4)
 * OpenCV (opencv-python==4.2.0)
 * SciPy (scipy==1.5.1)
-* hdbscan (hdbscan==0.8.26)
+* Scikit-learn (scikit-learn-0.24.1)
 
 To run the evaluator software you will just need Python 3.
 
