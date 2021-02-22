@@ -30,7 +30,7 @@ The evaluation results are calculated as the mean similarity of all crop windows
 In the *results* folder we include two sub-folders:
 * *smarcrop* with the results of our method, and
 * *autoflip* with the results of Google's [AutoFlip](https://google.github.io/mediapipe/solutions/autoflip) method,
-for you to quickly reproduce the results that can be found in our paper (see the first citation in Citations section).
+for you to quickly replicate the results of our paper (see the first citation in Citations section).
  
 The software was implemented in Python 3 and the source code is available in the *evaluation_software* folder of this repository.
 
