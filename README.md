@@ -45,7 +45,7 @@ The software was implemented in C# and the source code is available in the *anno
 
 
 ## Prerequisities
-To run our SmartCrop method you will need Python 3. You must also wave installed the following packages (in parenthesis are the recommended packages version to install):
+To run our SmartCrop method you will need Python 3. You must also wave installed the following packages (in parenthesis you can find the recommended version to install):
 
 * TensorFlow (tensorflow-gpu==1.14.0)
 * PyTorch (torch==1.7.1+cu110)
