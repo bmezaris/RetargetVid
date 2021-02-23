@@ -9,7 +9,7 @@ We observed that each literature work about video retargeting uses an arbitrary 
 We also release a new, rather simple, yet fast and well-performing, video cropping method, which selects the main focus out of the multiple possible salient regions of the video by introducing a new filtering-through-clustering processing step.
 
 ## Dataset
-We selected a subset of 200 videos from the publicly available videos of the [DHF1k](https://github.com/wenguanwang/DHF1K) dataset. Specifically, we selected the first 100 videos of the training set (videos with indices 001 to 100) and the 100 videos of the validation set (videos with indices 601 to 700). All videos are in 16:9 aspect ratio and most of them consist of a single shot. The DHF1k dataset was originally constructed as a benchmark for evaluating visual saliency methods. Upon visual inspection, this dataset was considered ideal to provide a balanced set of both easy and challenging videos for the video cropping task. 
+We selected a subset of 200 videos from the publicly available videos of the [DHF1k](https://github.com/wenguanwang/DHF1K) dataset, specifically, the first 100 videos of the training set (videos with indices 001 to 100) and the 100 videos of the validation set (videos with indices 601 to 700). All videos are in 16:9 aspect ratio and most of them consist of a single shot.
 
 We invited 6 human subjects and asked them to select the region of each frame that would be ideal to be included in a cropped version of the video. Specifically, we assigned them the task of generating two cropped versions for each video, one with target aspect ratio of 1:3 and another one with target aspect ratio of 3:1. We selected these extreme target aspect ratios (despite not being used in real-life applications) in order to identify human preferences under very demanding circumstances. Moreover, less extreme target aspect ratios can still be evaluated by assessing to what extent an e.g. 9:16 crop window includes the 1:3 manually specified window.
 
@@ -54,6 +54,7 @@ To run our SmartCrop method you will need Python 3. You must also wave installed
 * OpenCV (opencv-python==4.2.0)
 * SciPy (scipy==1.5.1)
 * Scikit-learn (scikit-learn-0.24.1)
+* TransNetV2 from [here](https://github.com/soCzech/TransNetV2)
 
 To run the evaluator software you will just need Python 3.
 
