@@ -19,7 +19,7 @@ Our crop window annotations for each video are in the form of text files, where 
 ## SmartVidCrop Method
 We argue that cropping methods are more suitable for video aspect ratio transformation when the minimization of semantic distortions is a prerequisite.  Therefore, we present a new, rather simple, yet fast and well-performing, video cropping method, which selects the main focus out of the multiple possible salient regions of the video by introducing a new filtering-through-clustering processing step. For our method, we utilize visual saliency to find the image regions of attention, and we employ a filtering-through-clustering technique to select the main region of focus. For more details, see the first citation in Citations section.
 
-Our method is implemented in Python 3 and the source code is available in the *smartcrop* directory of this repository.
+Our method is implemented in Python 3 and the source code is available in the *SmartVidCrop* directory of this repository.
 
 
 ## Evaluation Software
@@ -28,7 +28,7 @@ To evaluate the results of your method with respect to the ground truth annotati
 The evaluation results are calculated as the mean similarity of all crop windows between the results contained in a sub-directory of the *results* directory and the RetargetVid dataset's ground-truth annotations. The similarity is calculated in terms of the Intersection over Union (IoU) scores.
 
 In the *results* directory we include two sub-directories:
-* *smartcrop* with the results of our method, and
+* *smartvidcrop* with the results of our method, and
 * *autoflip* with the results of Google's [AutoFlip](https://google.github.io/mediapipe/solutions/autoflip) method,
 for you to quickly replicate the results of our paper (see the first citation in Citations section).
  
@@ -69,13 +69,14 @@ To run the annotator software you will need .ΝΕΤ framework 3.1 runtimes for y
 
 If you use any of this repository contents, please cite the following work:
 ```
-	@inproceedings{kapost2020afast,
+@inproceedings{kapost2020afast,
 	title={A fast smart-cropping method and dataset for video retargeting},
 	author={Apostolidis, Konstantinos and Mezaris, Vasileios},
-	booktitle={Proceedings of the 3rd International Workshop on AI for Smart TV Content Production, Access and Delivery},
+	booktitle={2021 IEEE International Conference on Image Processing (ICIP)},
 	pages={17--24},
-	year={2021}
-	}
+	year={2021},
+	organization={IEEE}
+}
 ```
 
 The original videos are taken from the [DHF1k](https://github.com/wenguanwang/DHF1K) dataset, which was introduced in the following work:
@@ -90,7 +91,7 @@ The original videos are taken from the [DHF1k](https://github.com/wenguanwang/DH
 	pages={220--237},
 	year={2019},
 	publisher={IEEE}
-	}
+}
 ```
 
 
