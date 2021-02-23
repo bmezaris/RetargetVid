@@ -54,7 +54,11 @@ To run our SmartCrop method you will need Python 3. You must also wave installed
 * OpenCV (opencv-python==4.2.0)
 * SciPy (scipy==1.5.1)
 * Scikit-learn (scikit-learn-0.24.1)
-* TransNetV2 from [here](https://github.com/soCzech/TransNetV2)
+
+SmartCrop also uses the following libraries
+* [Unisal](https://github.com/rdroste/unisal)
+* [TransNetV2](https://github.com/soCzech/TransNetV2)
+but this packages are already included in the 3rd_party_libs directory.
 
 To run the evaluator software you will just need Python 3.
 
@@ -86,17 +90,6 @@ The original videos are taken from the [DHF1k](https://github.com/wenguanwang/DH
 	year={2019},
 	publisher={IEEE}
 	}
-```
-	
-We employ the UNISAL model for saliency detection. The original work that introduces this model is the following:
-
-```
-@inproceedings{drostejiao2020,
-	author={{Droste}, Richard and {Jiao}, Jianbo and {Noble}, J. Alison},
-	title="{Unified Image and Video Saliency Modeling}",
-	booktitle={Proceedings of the 16th European Conference on Computer Vision (ECCV)},
-	year={2020},
-}
 ```
 
 
