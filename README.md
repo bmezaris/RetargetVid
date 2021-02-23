@@ -72,12 +72,12 @@ To run the annotator software you will need .ΝΕΤ framework 3.1 runtimes for y
 If you use any of this repository contents, please cite the following work:
 ```
 @inproceedings{kapost2020afast,
-	title={A fast smart-cropping method and dataset for video retargeting},
-	author={Apostolidis, Konstantinos and Mezaris, Vasileios},
-	booktitle={2021 IEEE International Conference on Image Processing (ICIP)},
-	pages={17--24},
-	year={2021},
-	organization={IEEE}
+title={A fast smart-cropping method and dataset for video retargeting},
+author={Apostolidis, Konstantinos and Mezaris, Vasileios},
+booktitle={2021 IEEE International Conference on Image Processing (ICIP)},
+pages={17--24},
+year={2021},
+organization={IEEE}
 }
 ```
 
@@ -85,14 +85,14 @@ The original videos are taken from the [DHF1k](https://github.com/wenguanwang/DH
 
 ```
 @article{wang2019revisiting,
-	title={Revisiting video saliency prediction in the deep learning era},
-	author={Wang, Wenguan and Shen, Jianbing and Xie, Jianwen and Cheng, Ming-Ming and Ling, Haibin and Borji, Ali},
-	journal={IEEE transactions on pattern analysis and machine intelligence},
-	volume={43},
-	number={1},
-	pages={220--237},
-	year={2019},
-	publisher={IEEE}
+title={Revisiting video saliency prediction in the deep learning era},
+author={Wang, Wenguan and Shen, Jianbing and Xie, Jianwen and Cheng, Ming-Ming and Ling, Haibin and Borji, Ali},
+journal={IEEE transactions on pattern analysis and machine intelligence},
+volume={43},
+number={1},
+pages={220--237},
+year={2019},
+publisher={IEEE}
 }
 ```
 
