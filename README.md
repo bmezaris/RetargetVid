@@ -59,7 +59,9 @@ To run our SmartVidCrop method you will need Python 3. You must also have the fo
 SmartVidCrop also uses the following libraries
 * [Unisal](https://github.com/rdroste/unisal)
 * [TransNetV2](https://github.com/soCzech/TransNetV2)
+
 but these packages are already included in the 3rd_party_libs directory.
+
 
 To run the evaluator software you will just need Python 3.
 
