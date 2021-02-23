@@ -27,7 +27,7 @@ To evaluate the results of your method with respect to the ground truth annotati
 
 The evaluation results are calculated as the mean similarity of all crop windows between contained in a sub-directory in the *results* directory and the RetargetVid dataset's ground-truth annotations. The similarity is calculated in terms of the Intersection over Union (IoU) scores.
 
-In the *results* directory we include two sub-directory:
+In the *results* directory we include two sub-directories:
 * *smartcrop* with the results of our method, and
 * *autoflip* with the results of Google's [AutoFlip](https://google.github.io/mediapipe/solutions/autoflip) method,
 for you to quickly replicate the results of our paper (see the first citation in Citations section).
