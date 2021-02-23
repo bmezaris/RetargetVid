@@ -22,7 +22,7 @@ We argue that cropping methods are more suitable for video aspect ratio transfor
 Our method is implemented in Python 3 and the source code is available in the *SmartVidCrop* directory of this repository.
 
 
-## Evaluation Software
+## Evaluation
 To evaluate the results of your method with respect to the ground truth annotations of the **RetargetVid** dataset, first download this repository. Then, create a new sub-directory in the *results* directory, in which a text file for each of the 200 videos of the dataset must be created. The files must follow the naming convension *$video_id$-$target_aspect ratio$.txt*, where *$video_id$* is the original video filename and $target_aspect ratio$ is the target aspect ratio (i.e. "1-3" or "3-1"). Each line of this text file must have the crop window (top, left, bottom, right) coordinates. Finally, run the *retargetvid_eval.py* python script. The evaluation results for every sub-directory in the *results* directory will be displayed, warning you if there were any errors in the process or any incomplete annotations were found.
 
 The evaluation results are calculated as the mean similarity of all crop windows between the results contained in a sub-directory of the *results* directory and the RetargetVid dataset's ground-truth annotations. The similarity is calculated in terms of the Intersection over Union (IoU) scores.
