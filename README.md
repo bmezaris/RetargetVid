@@ -47,7 +47,7 @@ The software was implemented in C# and the source code is available in the *anno
 ## Prerequisities
 To run our SmartVidCrop method you will need Python 3. You must also have the following packages which can be simply installed via pip (in parenthesis you can find the recommended version to install):
 
-* TensorFlow (tensorflow-gpu==1.14.0)
+* TensorFlow (tensorflow-gpu==2.0)
 * PyTorch (torch==1.7.1+cu110)
 * hdbscan (hdbscan==0.8.26)
 * ffmpeg (ffmpeg==1.4)
