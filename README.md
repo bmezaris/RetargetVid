@@ -40,7 +40,7 @@ The software was implemented in Python 3 and the source code is included in the 
 ## Annotator Software
 To assist the annotators in their task we implemented a graphical user interface tool which facilitates the navigation throughout the video, allows the user to set a crop window for each frame through simple drag-and-drop mouse operations, and overlays the crop window on the video frames to allow for the quick inspection of the user's decisions.
 
-The software was implemented in C# and the source code is available in the *annotator_software* directory of this repository.
+The software was implemented in C# and the source code is available in the *annotator_software* directory of this repository. You will need Visual Studio 2019 to compile the source code.
 
 
 
