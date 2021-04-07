@@ -71,11 +71,10 @@ To run the annotator software you will need .ΝΕΤ framework 3.1 runtimes for y
 
 If you use any of this repository contents, please cite the following work:
 ```
-@inproceedings{kapost2020afast,
+@inproceedings{kapost2021afast,
 title={A fast smart-cropping method and dataset for video retargeting},
 author={Apostolidis, Konstantinos and Mezaris, Vasileios},
 booktitle={2021 IEEE International Conference on Image Processing (ICIP)},
-pages={17--24},
 year={2021},
 organization={IEEE}
 }
