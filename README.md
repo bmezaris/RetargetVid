@@ -21,7 +21,7 @@ We argue that cropping methods are more suitable for video aspect ratio transfor
 
 Our method is implemented in Python 3 and the main script is the *smartVidCrop.py* of this repository. You can import this to your own pyhton scripts or run it. Running it will invoke the main method and re-produce the results of our paper. 
 
-We have also implemented a technique to assess the quality of the cropped version and opt to resort to padding in the case where the results of cropping are unsatisfactory  due to the nature of the video’s content, i.e. only a small percentage of the salient visual information can be covered by any crop window. This is due to acknowledging that a cropped versionof a video cannot always retain all regions of interest of the original video. Running the *smartVidCrop.py* script as a standalone (i.e. invoking the main method) this feature is disable and producing a cropped version is forced.
+We have also implemented a technique to assess the quality of the cropped version and opt to resort to padding in the case where the results of cropping are unsatisfactory  due to the nature of the video’s content, i.e. only a small percentage of the salient visual information can be covered by any crop window. This is due to acknowledging that a cropped versionof a video cannot always retain all regions of interest of the original video. Running the *smartVidCrop.py* script as a standalone (i.e. invoking the main method) this feature is disabled and producing a cropped version is forced.
 
 If you want to adjust this feature or other parameters of our method, see "sc_init_crop_params" method in the *smartVidCrop.py*.
 
