@@ -19,7 +19,7 @@ Our crop window annotations for each video are in the form of text files, where 
 ## SmartVidCrop Method
 We argue that cropping methods are more suitable for video aspect ratio transformation when the minimization of semantic distortions is a prerequisite.  Therefore, we present a new, rather simple, yet fast and well-performing, video cropping method, which selects the main focus out of the multiple possible salient regions of the video by introducing a new filtering-through-clustering processing step. For our method, we utilize visual saliency to find the image regions of attention, and we employ a filtering-through-clustering technique to select the main region of focus. For more details, see the first citation in Citations section.
 
-Our method is implemented in Python 3 and the source code is available in the *SmartVidCrop* directory of this repository.
+Our method is implemented in Python 3 and the main script is the *smartVidCrop.py* of this repository. You can import this to your own pyhton scripts or run it. Running it will invoke the main method and re-produce the results of our paper.
 
 
 ## Evaluation
@@ -45,7 +45,8 @@ The software was implemented in C# and the source code is available in the *anno
 
 
 ## Prerequisities
-To run our SmartVidCrop method you will need Python 3. You must also have the following packages which can be simply installed via pip (in parenthesis you can find the recommended version to install):
+To run our SmartVidCrop method you will need Python 3. Clone this repository and make sure that you extracted the zip files in the *annotations* directory  as well as the *results/smartvidcrop.zip*.
+You must also have the following packages which can be simply installed via pip (in parenthesis you can find the recommended version to install):
 
 * TensorFlow (tensorflow-gpu==2.0)
 * PyTorch (torch==1.7.1+cu110)
@@ -61,7 +62,6 @@ SmartVidCrop also uses the following libraries
 * [TransNetV2](https://github.com/soCzech/TransNetV2)
 
 but these packages are already included in the 3rd_party_libs directory.
-
 
 To run the evaluator software you will just need Python 3.
 
