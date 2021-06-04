@@ -54,7 +54,7 @@ To run our SmartVidCrop method you will need Python 3. You must also have the fo
 * OpenCV (opencv-python==4.2.0)
 * SciPy (scipy==1.5.1)
 * ImUtils (imutils==0.5.4)
-* Scikit-learn (scikit-learn-0.24.1)
+* Scikit-learn (scikit-learn==0.24.1)
 
 SmartVidCrop also uses the following libraries
 * [Unisal](https://github.com/rdroste/unisal)
