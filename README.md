@@ -45,7 +45,7 @@ The software was implemented in C# and the source code is available in the *anno
 
 
 ## Prerequisities
-To run our SmartVidCrop method you will need Python 3. Clone this repository and make sure that you extracted the zip files in the *annotations* directory  as well as the *results/smartvidcrop.zip*.
+To run our SmartVidCrop method you will need Python 3. Clone this repository and make sure that you extracted the zip files in the *annotations* directory  as well as the *results/smartvidcrop.zip*. Also, please download the TrnasNetV2 pretrained models files (*variables.data-00000-of-00001* and *variables.index*) from the [TransNetV2](https://github.com/soCzech/TransNetV2) repository and place them in *RetargetVid/3rd_party_libs/transnetv2/inference/transnetv2-weights/variables* directory.
 You must also have the following packages which can be simply installed via pip (in parenthesis you can find the recommended version to install):
 
 * TensorFlow (tensorflow-gpu==2.0)
