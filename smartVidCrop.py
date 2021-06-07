@@ -130,22 +130,25 @@ def sc_init_crop_params(print_dict=False):
 	crop_params['out_ratio'] 		= "4:5"
 	crop_params['max_input_d'] 		= 250
 	crop_params['skip'] 			= 6
-	crop_params['seconds_batch'] 	= 20
+	crop_params['seconds_batch'] 		= 20
 
-	crop_params['resize_factor'] 	= 1.0
+	crop_params['resize_factor'] 		= 1.0
 	crop_params['op_close'] 		= True
 	crop_params['value_bias']		= 1.0 	# bias conversion of image value
-											# to 3rd dimension for clustering
+							# to 3rd dimension for clustering
 									
-	crop_params['exit_on_spread_sal'] = True
-	crop_params['exit_on_low_cvrg'] = True
+	crop_params['exit_on_spread_sal'] 	= False # Set to True to resort to padding
+							# if mean saliency of a frame is above t_sal
+	crop_params['exit_on_low_cvrg'] 	= False # Set to True to resort to padding
+							# if the coverage score is above t_cvrg
 	
 	crop_params['com_km'] 			= True 	# perform kmeans for center of mass,
-											# else return position of max val
+							# else return position of max val
 	
 	crop_params['clust_filt'] 		= True
 	crop_params['select_sum'] 		= 1  	# if 1, select cluster with max sum, 
-											# else select cluster with value
+							# else select cluster with value
+		
 	crop_params['use_3d'] 			= False	# use 3d clustering filtering
 	
 	crop_params['use_fast'] 		= False	# use fast multi-kmeans instead of HDBSCAN
@@ -160,8 +163,8 @@ def sc_init_crop_params(print_dict=False):
 	crop_params['shift_time'] 		= 0
 
 	crop_params['loess_filt'] 		= 1
-	crop_params['loess_w_secs'] 	= 2
-	crop_params['loess_degree'] 	= 2
+	crop_params['loess_w_secs'] 		= 2
+	crop_params['loess_degree'] 		= 2
 
 	crop_params['lp_filt'] 			= 1
 	crop_params['lp_cutoff'] 		= 2
