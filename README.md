@@ -2,7 +2,7 @@
 # RetargetVid & SmartVidCrop
 
 ## Introduction
-This repository contains **RetargetVid** - a video retargeting dataset, and **SmartVidCrop** - a fast cropping method for video retargeting.
+This repository contains **RetargetVid** - a video retargeting dataset, and **SmartVidCrop** - a fast cropping method for video retargeting, i.e. for transforming a video's aspect ratio.
 
 We observed that each literature work about video retargeting uses an arbitrary selection of videos to test its results, and most of the time these videos are not provided, while the evaluation procedure relies on visual inspection of selected frames. Motivated by this we construct and release RetargetVid, a publicly available benchmark dataset for video cropping, annotated by 6 human subjects.
 
