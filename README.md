@@ -36,7 +36,7 @@ for you to quickly replicate the results of our paper (see the first citation in
  
 The software was implemented in Python 3 and the source code is included in the *retargetvid_eval.py* file of this repository.
 
-After publishing our ICIP paper we introduced two changes in our algorihtm which achieve a better score on the retargetVid dataset. The first update is the introduction of a "focus stability" mechanism in order to reject sudden and extreme changes in focus, while the second update is an optimized set of parameters. The default settings of the *smartVidCrop.py* script will reproduce the results of our ICIP paper. To deploy both oh the aforementioned updates call the *sc_init_crop_params* method changing the optional argument *use_best_settings* to True. In the following table we report the resulting gain in terms of mean IoU.
+After publishing our ICIP paper we introduced two changes in our algorihtm that achieve a better score on the retargetVid dataset than the one reported in the paper. The first update is the introduction of a "focus stability" mechanism in order to reject sudden changes in focus, while the second update is an optimized set of parameters. To deploy both of the aforementioned updates call the *sc_init_crop_params* method changing the optional argument *use_best_settings* to True. The default settings of the *smartVidCrop.py* script will reproduce the results of our ICIP paper. In the following table we report the resulting gain in terms of mean IoU.
 
 | parameters set  | mean IoU on RetargetVid <br />(1:3 target aspect ratio)| mean IoU on RetargetVid <br />(3:1 target aspect ratio)|
 | --- | :-: | :-: |
