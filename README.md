@@ -41,7 +41,7 @@ The default parameters will reprorduce the results of our ICIP paper. However, a
 | parameters set  | mean IoU on RetargetVid <br />(1:3 target aspect ratio)| mean IoU on RetargetVid <br />(3:1 target aspect ratio)|
 | --- | :-: | :-: |
 | paper settings (default) | 49.9%  | 71.4% |
-| updated settings <br />+ focus stability mechanism | 52.8% | 75.3% |
+| focus stability mechanism<br />+ optimized settings| 52.8% | 75.3% |
 
 
 
