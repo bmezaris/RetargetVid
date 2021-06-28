@@ -36,12 +36,12 @@ for you to quickly replicate the results of our paper (see the first citation in
  
 The software was implemented in Python 3 and the source code is included in the *retargetvid_eval.py* file of this repository.
 
-The default parameters will reprorduce the results of our ICIP paper. However, after writing this paper, we introduced two updates that yield a better evaluation score on the retargetVid dataset. The first one is the introduction of a "focus stability" mechanism in order to reject sudden and extreme changes of focus. The second one is a better set of parameters. To enable both of these updates make sure to call the *sc_init_crop_params* method setting the optional argument *use_best_settings* to True. In the following table you can see the gain in performance that is offered.
+The default parameters will reprorduce the results of our ICIP paper. However, after writing this paper, we introduced two changes in our algorihtm which provide a better evaluation score on the retargetVid dataset. The first update is the introduction of a "focus stability" mechanism in order to reject sudden and extreme changes of focus, while the second update is an optimized set of parameters. To deploy these updates make sure to call the *sc_init_crop_params* method setting the optional argument *use_best_settings* to True (default value is False). In the following table we report the achieved gain in performance.
 
-| parameters set  | mean IoU on RetargetVid <br /> for 1:3 target aspect ratio | mean IoU on RetargetVid <br /> for 3:1 target aspect ratio |
+| parameters set  | mean IoU on RetargetVid <br />(for 1:3 target aspect ratio)| mean IoU on RetargetVid <br />(for 3:1 target aspect ratio)|
 | --- | --- | --- |
 | paper settings (default) | 49.9%  | 71.4% |
-| optimized settings | 52.8% | 75.3% |
+| updated settings + focus stability mechanism | 52.8% | 75.3% |
 
 
 
