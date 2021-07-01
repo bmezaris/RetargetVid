@@ -36,20 +36,20 @@ for you to quickly replicate the results of our paper (see the first citation in
  
 The software was implemented in Python 3 and the source code is included in the *retargetvid_eval.py* file of this repository.
 
-After publishing our ICIP paper we introduced two changes in our algorihtm that achieve a better score on the retargetVid dataset than the one reported in the paper. The first update is the introduction of a "focus stability" mechanism in order to reject sudden changes in focus, while the second update is an optimized set of parameters. To deploy both of the aforementioned updates call the *sc_init_crop_params* method changing the optional argument *use_best_settings* to True. The default settings of the *smartVidCrop.py* script will reproduce the results of our ICIP paper. In the following table we report the resulting gain in terms of mean IoU.
+After publishing our ICIP paper we introduced two changes in our algorihtm that achieve a better score on the retargetVid dataset than the one reported in the paper. The first update is the introduction of a "focus stability" mechanism in order to reject sudden changes in focus, while the second update is an optimized set of parameters. To deploy both of the aforementioned updates call the *sc_init_crop_params* method changing the optional argument *use_best_settings* to True. The default settings of the *smartVidCrop.py* script will reproduce the results of our ICIP paper. In the following table we report the resulting gain in terms of average IoU across all 6 subjects' annotations in RetargetVid dataset ("mean IoU") and the ratio of execution time to video duration ("t").
 
 <table>
 <thead>
   <tr>
-    <th rowspan="2">parameters set</th>
-    <th colspan="2">1:3 target aspect ratio<br></th>
-    <th colspan="2">3:1 target aspect ratio</th>
+    <th rowspan="2"><b>parameters set</b></th>
+    <th colspan="2"><b>1:3 target aspect ratio</b></th>
+    <th colspan="2"><b>3:1 target aspect ratio</b></th>
   </tr>
   <tr>
-    <td>mean IoU<br></td>
-    <td>execution time to<br>video duration ratio</td>
-    <td>mean IoU</td>
-    <td>execution time to<br>video duration ratio</td>
+    <td><b>mean IoU</b></td>
+    <td><b>t</b></td>
+    <td><b>mean IoU</b></td>
+    <td><b>t</b></td>
   </tr>
 </thead>
 <tbody>
