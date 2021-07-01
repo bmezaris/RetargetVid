@@ -5,6 +5,7 @@ import os
 import pathlib
 import sys
 import numpy as np
+from numpy.lib.stride_tricks import as_strided
 import pickle
 import gc
 
@@ -33,8 +34,6 @@ from scipy import signal
 
 # get path that the current script file is in
 root_path = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
-temp_path = None
-temp_path = os.path.join(root_path, 'temp')
 
 ### 3rd party libs loading
 # DCNN-based shot segmentation using TransNet
@@ -46,7 +45,7 @@ if tfv[0]=='1':
 	transnetv1_full_path = os.path.join(root_path, '3rd_party_libs', 'transnetv1')
 	print(' (adding path %s)' % transnetv1_full_path)
 	sys.path.insert(0, transnetv1_full_path)
-	print(' loading transnet v2 model')
+	print(' loading transnet v1 model')
 	import transnetv1_handler
 	stn_params = transnetv1_handler.ShotTransNetParams()
 	stn_params.CHECKPOINT_PATH = os.path.join('3rd_party_libs', 'transnetv1', 'shot_trans_net-F16_L3_S2_D256')
@@ -55,15 +54,33 @@ if tfv[0]=='1':
 	TRANSNET_H = 27
 	TRANSNET_W = 48
 else:
-	transnetv2_full_path = os.path.join(root_path, '3rd_party_libs', 'transnetv2', 'inference')
-	print(' (adding path %s)' % transnetv2_full_path)
-	sys.path.insert(0, transnetv2_full_path)
-	print(' loading transnet v2 model')
-	import transnetv2
-	trans_threshold = 0.5
-	transnet_model = transnetv2.TransNetV2(model_dir=os.path.join(transnetv2_full_path, 'transnetv2-weights'))
-	TRANSNET_H = 27
-	TRANSNET_W = 48
+	gpus = tf.config.experimental.list_physical_devices('GPU')#Get GPU list
+	tf.config.experimental.set_virtual_device_configuration(gpus[0], [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=2048)])
+	force_transnet1 = False
+	if force_transnet1:
+		gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=0.1)
+		sess = tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(gpu_options=gpu_options))
+		transnetv1_full_path = os.path.join(root_path, '3rd_party_libs', 'transnetv1')
+		print(' (adding path %s)' % transnetv1_full_path)
+		sys.path.insert(0, transnetv1_full_path)
+		print(' loading transnet v1 model')
+		import transnetv1_handler
+		stn_params = transnetv1_handler.ShotTransNetParams()
+		stn_params.CHECKPOINT_PATH = os.path.join('3rd_party_libs', 'transnetv1', 'shot_trans_net-F16_L3_S2_D256')
+		trans_threshold = 0.1
+		transnet_model = transnetv1_handler.ShotTransNet(stn_params, session=sess)
+		TRANSNET_H = 27
+		TRANSNET_W = 48
+	else:
+		transnetv2_full_path = os.path.join(root_path, '3rd_party_libs', 'transnetv2', 'inference')
+		print(' (adding path %s)' % transnetv2_full_path)
+		sys.path.insert(0, transnetv2_full_path)
+		print(' loading transnet v2 model')
+		import transnetv2
+		trans_threshold = 0.5
+		transnet_model = transnetv2.TransNetV2(model_dir=os.path.join(transnetv2_full_path, 'transnetv2-weights'))
+		TRANSNET_H = 27
+		TRANSNET_W = 48
 
 # DCNN-based Saliency detection using UNISAL
 import torch
@@ -80,12 +97,6 @@ loess_full_path = os.path.join(root_path, '3rd_party_libs', 'loess')
 print(' (adding path %s)' % loess_full_path)
 sys.path.insert(0, loess_full_path)
 import pyloess
-
-# pyTorch kmeans
-kmeans_pytorch_full_path = os.path.join(root_path, '3rd_party_libs', 'kmeans_pytorch')
-print(' (adding path %s)' % kmeans_pytorch_full_path)
-from kmeans_pytorch import kmeans as ptkm
-
 
 # Methods to initiate the time dictionary,
 # register a time in time dictionary,
@@ -124,47 +135,47 @@ def sc_get_time(key_name):
 
 
 # Initiates the SmartCrop method's parameters to the default settings
-def sc_init_crop_params(print_dict=False):
+def sc_init_crop_params(print_dict=False, use_best_settings=False):
 	crop_params = {}
 
 	crop_params['out_ratio'] 		= "4:5"
 	crop_params['max_input_d'] 		= 250
 	crop_params['skip'] 			= 6
-	crop_params['seconds_batch'] 		= 20
+	crop_params['read_batch'] 		= 2000
 
-	crop_params['resize_factor'] 		= 1.0
+	crop_params['resize_factor'] 	= 1.0
+	crop_params['resize_type']  	= 1		# 1: bilinear interp.,
+											# 2: cubic interp.
+											# 3: nearest
+											
 	crop_params['op_close'] 		= True
 	crop_params['value_bias']		= 1.0 	# bias conversion of image value
-							# to 3rd dimension for clustering
+											# to 3rd dimension for clustering
 									
-	crop_params['exit_on_spread_sal'] 	= False # Set to True to resort to padding
-							# if mean saliency of a frame is above t_sal
-	crop_params['exit_on_low_cvrg'] 	= False # Set to True to resort to padding
-							# if the coverage score is above t_cvrg
+	crop_params['exit_on_spread_sal'] = False
+	crop_params['exit_on_low_cvrg'] = False
 	
 	crop_params['com_km'] 			= True 	# perform kmeans for center of mass,
-							# else return position of max val
+											# else return position of max val
 	
 	crop_params['clust_filt'] 		= True
-	crop_params['select_sum'] 		= 1  	# if 1, select cluster with max sum, 
-							# else select cluster with value
-		
-	crop_params['use_3d'] 			= False	# use 3d clustering filtering
-	
-	crop_params['use_fast'] 		= False	# use fast multi-kmeans instead of HDBSCAN
-	
-	crop_params['min_d_jump']		= 20 	# min pixels distance of a center 
-											# jumps to take into consideration
+	crop_params['select_sum'] 		= 2  	# if 1, select cluster with max sum, 
+											# else select cluster with max value
+	crop_params['min_d_jump']		= 10 	# min pixels distance of a center 
+											# jumps to take into consideration											
 											
-	crop_params['min_t_cut'] 		= 1.0 	# length of consecutive empty sal, maps 
-											# must be above this to select next cluster
+	crop_params['focus_stability'] 	= False
+	crop_params['foces_stab_t'] 	= 60
+	crop_params['foces_stab_s'] 	= 1.5
+	
 	crop_params['hdbscan_min'] 		= 26
+	crop_params['hdbscan_min_samples'] = None
 
 	crop_params['shift_time'] 		= 0
 
 	crop_params['loess_filt'] 		= 1
-	crop_params['loess_w_secs'] 		= 2
-	crop_params['loess_degree'] 		= 2
+	crop_params['loess_w_secs'] 	= 2
+	crop_params['loess_degree'] 	= 2
 
 	crop_params['lp_filt'] 			= 1
 	crop_params['lp_cutoff'] 		= 2
@@ -172,13 +183,25 @@ def sc_init_crop_params(print_dict=False):
 
 	crop_params['t_sal'] 			= 40  	# max mean saliency to continue (if higher than this -> pad)
 	crop_params['t_cvrg'] 			= 0.60  # min coverage to continue (if lower than this -> pad)
-	crop_params['t_threshold'] 		= 200
+	crop_params['t_threshold'] 		= 120
 	crop_params['t_border'] 		= -1 	# set to -1 to disable border detection
 	
 	crop_params['t_cut'] 			= 120 	# if lower than this then a jump over a low saliency area 
 											# was made and extra cut will be inserted
-	crop_params['no_extra_cuts'] 	= 0
 
+	if use_best_settings:
+		crop_params['t_threshold'] = 90
+		crop_params['hdbscan_min'] = 5
+		crop_params['hdbscan_min_samples'] = 3
+		crop_params['min_d_jump']		= 1
+		crop_params['resize_factor'] = 4
+		crop_params['op_close'] = True
+		crop_params['value_bias'] = 1.0
+		crop_params['select_sum'] = 1 ####
+		crop_params['focus_stability'] = True
+		crop_params['foces_stab_t'] 	= 60 # 50 # 50.750
+		crop_params['foces_stab_s'] 	= 1.5
+	
 	if print_dict:
 		for x in crop_params.keys():
 			print(x, ':', crop_params[x])
@@ -206,10 +229,10 @@ def predictions_to_scenes(predictions: np.ndarray, threshold: float = 0.5):
 		return np.array([[0, len(predictions) - 1]], dtype=np.int32)
 	return np.array(scenes, dtype=np.int32)
 
-# Reads a video, performs shot and salienct detection
+# Reads a video, performs shot and saliency detection
 # return segmentation info and samples saliency mapsd
 def read_and_segment_video(video_path, crop_params, verbose=False):
-	t = cv2.getTickCount()
+	t_total = cv2.getTickCount()
 	
 	# open video, get info and close it
 	print(' ingesting %s...' % video_path)
@@ -222,7 +245,7 @@ def read_and_segment_video(video_path, crop_params, verbose=False):
 	del vcap
 	
 	# compute batch size based on frame rate
-	batch_size = int(crop_params['seconds_batch']*fr)
+	batch_size = crop_params['read_batch']
 	batch_overlap = int(fr)
 	
 	# compute frames size for saliency detection
@@ -277,7 +300,7 @@ def read_and_segment_video(video_path, crop_params, verbose=False):
 	iii = -1
 	
 	# register read_init time
-	sc_register_time(t, 'read_init')
+	sc_register_time(t_total, 'read_init')
 	
 	# loop through video
 	bail_out = False
@@ -287,7 +310,7 @@ def read_and_segment_video(video_path, crop_params, verbose=False):
 		t = cv2.getTickCount()
 		
 		# show header and try to load frame
-		if (iii%9==0) or (iii>frame_count-50):
+		if (iii%50==0) or (iii>frame_count-50):
 			print('\r reading %d/%d ' % (iii+1, frame_count), end='', flush=True)
 		frame = fvs.read()
 		if frame is None:
@@ -343,6 +366,7 @@ def read_and_segment_video(video_path, crop_params, verbose=False):
 			print('\n processing batch %d (%d->%d)...' % (bc,si,ei))
 				
 			# shot detection - copy non-overlapping probs
+			#temp = transnet_model.predict_frames(transnet_frames)
 			temp = transnet_model.predict_video(transnet_frames)
 			for i in range(cur_batch_len):
 				trans_probs.append(temp[batch_overlap+i])
@@ -416,6 +440,9 @@ def read_and_segment_video(video_path, crop_params, verbose=False):
 	# get true frame count (no frames that we successfully read)
 	true_frame_count = iii+1
 	
+	# print time for init, open and reading of video
+	print(' done in %.3fs...'%((cv2.getTickCount() - t_total) / cv2.getTickFrequency()))
+	
 	# start timer for "read_tidy" time
 	t = cv2.getTickCount()	
 				
@@ -475,8 +502,6 @@ def read_and_segment_video(video_path, crop_params, verbose=False):
 		print(' %-24s: %d'%('true total frames', frame_count))
 		print(' %-24s: %d'%('selected frames', vid_data['fc_sel']))
 		print(' %-24s: %d'%('true indices len', len(vid_data['true_inds'])))
-		print(' %-24s: '%('true indices'))
-		print(vid_data['true_inds'])
 
 		print(' %-24s: %d'%('map len', len(vid_data['inds_to_orig'])))
 		print(' %-24s: (%dx%d)'%('original dimension',vid_data['h_orig'], 
@@ -632,103 +657,6 @@ def bb_intersection_over_union(boxA, boxB):
 	return iou
 
 
-# performs a fast pyTorch kmeans implementation that utilizes GPU
-# the clustering is performed over various k and 
-# choose the result that maximizes the inter cluster distances
-# INCOMPLETE IMPLEMENTATION
-def sc_multi_kmeans(X,verbose=False):
-	verbose_overide = False
-	use_inertia = True
-	
-	# upload X to GPU memory
-	t = cv2.getTickCount()
-	Xgpu = torch.from_numpy(X)
-	sc_register_time(t, 'clust_mkm_upload')
-
-	# cluster
-	t = cv2.getTickCount()
-	inertias = []
-	min_inter_dists = []
-	labels = []
-	centers = []
-	distances = []
-	ks = [2,3,4,5,6,7,8]
-	for k in ks:
-		temp_labels,temp_centers,temp_distances = ptkm(X=Xgpu, 
-											num_clusters=k, 
-											distance='euclidean', 
-											device=gpu_device, 
-											tqdm_flag=False)
-		labels.append(temp_labels)
-		centers.append(temp_centers)
-		distances.append(temp_distances)
-		min_dists,_ = torch.min(temp_distances,dim=1)
-		inertias.append(torch.sum(min_dists))
-		
-		if not use_inertia:
-			sorted_dists,_ = torch.sort(temp_distances,dim=1,descending=False)
-			min_inter_dists.append(torch.max(sorted_dists[:,1]).item())
-	sc_register_time(t, 'clust_mkm_main')
-	
-	# choose k 
-	t = cv2.getTickCount()
-	if use_inertia:
-		k_choose_inertia = -1
-		for i in range(1,len(ks)-1):
-			if inertias[i-1]-inertias[i] < inertias[i]-inertias[i+1]:
-				k_choose_inertia=i
-				break
-		# for i in range(len(ks)):
-			# prev_dist = -1
-			# if i>0:
-				# prev_dist= inertias[i-1]-inertias[i]
-			# next_dist = -1
-			# if i<len(ks)-1:
-				# next_dist= inertias[i]-inertias[i+1]
-			# if verbose and verbose_overide:
-				# s_i = ' '
-				# if k_choose_inertia==i:
-					# s_i='*'
-				# s_m = ' '
-				# print(' %3d : %6.3f%s| %6.3f | %6.3f | %6.3f%s' % (ks[i],
-																# inertias[i], s_i,
-																# prev_dist,
-																# next_dist,
-																# min_inter_dists[i], s_m))
-		labels = labels[k_choose_inertia]
-		centers = centers[k_choose_inertia]
-		distances = distances[k_choose_inertia]
-		n_clusters = ks[k_choose_inertia]
-
-	else:
-		k_choose_min_inter_dist = min_inter_dists.index(max(min_inter_dists))
-		# for i in range(len(ks)):
-			# if verbose and verbose_overide:
-				# s_i = ' '
-				# if k_choose_inertia==i:
-					# s_i='*'
-				# s_m = ' '
-				# if k_choose_min_inter_dist==i:
-					# s_m='*'
-				# print(' %3d : %6.3f%s| %6.3f | %6.3f | %6.3f%s' % (ks[i],
-																# inertias[i], s_i,
-																# prev_dist,
-																# next_dist,
-																# min_inter_dists[i], s_m))
-	
-		labels = labels[k_choose_min_inter_dist]
-		centers = centers[k_choose_min_inter_dist]
-		distances = distances[k_choose_min_inter_dist]
-		n_clusters = ks[k_choose_min_inter_dist]
-		
-	# if verbose and verbose_overide:
-		# print(' ...choose %d' % (n_clusters))
-	sc_register_time(t, 'clust_mkm_choose')
-	
-	return labels,centers,distances,n_clusters
-	
-
-
 def sc_calc_dest_size(vid_data, crop_params, verbose=False):
 	# compute final dimensions
 	c = crop_params['out_ratio'].split(':')
@@ -828,551 +756,47 @@ def sc_threshold(vid_data, crop_params, copy=False):
 	return vid_data
 
 
-
-def sc_clustering_filt_3d(hdbs_clusterer, sal_3d_map, CP, VD, fc_offset,
-				plots_fn='', verbose=False):
-	# will hold the extra cuts that must be inserter
-	extra_cuts = []
-				
-	# if an empty saliency volume was given, return it
-	if np.sum(sal_3d_map)==0:
-		return sal_3d_map, extra_cuts
-		
-	# parameters aliases for quick reference
-	factor = CP['resize_factor']
-	select_sum = CP['select_sum']
-	bias = CP['value_bias']
-	close = CP['op_close']
-	min_t_cut = CP['min_t_cut']
-	skip = CP['skip']
-	fr = VD['fr']
-	
-	# compute min count of consecutive empty sal. maps
-	# to select next cluster
-	min_fc_cut=	int(float(min_t_cut*fr))
-	
-	# init figure
-	t = cv2.getTickCount()
-	if plots_fn:
-		fig = plt.figure()
-	sc_register_time(t, 'clust_plot')
-		
-	# resize for faster operations
-	t = cv2.getTickCount()
-	oh = int(sal_3d_map.shape[0])
-	ow = int(sal_3d_map.shape[1])
-	nh = int(oh / factor)
-	nw = int(ow / factor)
-	d = sal_3d_map.shape[2]
-	if factor!=1.0:
-		sal_3d_resized = np.zeros((nh, nw, d), dtype='uint8')
-		for i in range(d):
-			sal_3d_resized[:,:,i] = cv2.resize(sal_3d_map[:,:,i], 
-											(nw, nh), 
-											interpolation=cv2.INTER_LINEAR)
-	else:
-		sal_3d_resized=sal_3d_map
-	sc_register_time(t, 'clust_resize_1')
-	
-	# init & gather points
-	t = cv2.getTickCount()
-	X = []
-	W = []
-	inds = np.argwhere(sal_3d_resized > 0)
-	for ind in inds:
-		X.append([ind[0], ind[1], ind[2], 
-				sal_3d_resized[ind[0],ind[1],ind[2]]])
-		W.append(X[-1][3])
-	l = len(X)
-	W = np.array(W).transpose()
-	sc_register_time(t, 'clust_gather')
-	
-	# check dimensions of X
-	X = np.array(X)
-	if len(X.shape)<2:
-		print(sal_3d_map)
-		print(X)
-		print(X.shape)
-		input('...')
-
-	# X rows: x,y,t,val
-	# bias 4th row (value of sal map)
-	t = cv2.getTickCount()
-	max_dim = max(nh, nw)
-	X[:, 3] = ((X[:, 3] / np.amax(X[:, 3])) * max_dim * bias)
-	X = X.astype(np.uint8)
-	sc_register_time(t, 'clust_bias')
-	
-	if l > CP['hdbscan_min'] + 1:
-		# cluster
-		# (compute number of clusters excluding outliers)
-		labels = hdbs_clusterer.fit_predict(X)
-		n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
-		sc_register_time(t, 'clust_hdbscan')
-		
-		# print info
-		if verbose:
-			print('   saliency volume:', sal_3d_map.shape)
-			print('   X:', X.shape)
-			print('   d =',d)
-			print('   labels len =', len(labels))
-			print('   n_clusters =', n_clusters)
-					
-		# plot before
-		t = cv2.getTickCount()
-		if plots_fn:
-			ax = fig.add_subplot(121, projection='3d')
-			sh = ax.scatter(X[:, 1], X[:, 2], X[:, 0], marker="s", c=labels, s=40, cmap="RdBu")
-			ax.set_xlabel('x')
-			ax.set_ylabel('t')
-			ax.set_zlabel('y')
-			ax.set_xlim((0, sal_3d_resized.shape[1]))
-			ax.set_ylim((0, sal_3d_resized.shape[2]))
-			ax.set_zlim((0, sal_3d_resized.shape[0]))
-			lg = ax.legend(*sh.legend_elements(), loc='best', title="Clusters")
-			ax.grid(True)
-		sc_register_time(t, 'clust_plot')
-		
-		# continue only if more than one clusters
-		if n_clusters > 0:
-
-			# calculate weight of each cluster
-			t = cv2.getTickCount()
-			c_weights = [0] * n_clusters
-			for i in range(n_clusters):
-				inds = list(np.where(labels == i)[0])
-				if select_sum == 1:
-					c_weights[i] = np.sum(W[inds])
-				else:
-					c_weights[i] = np.amax(W[inds])
-			max_cl = c_weights.index(max(c_weights))
-			sc_register_time(t, 'clust_weighting')
-
-			# calculate per frame the dominant cluster
-			t = cv2.getTickCount()
-			per_t_cls = [0] * d
-			for i in range(d):
-				inds = list(np.where(X[:, 2] == i)[0])
-				per_t_cls[i] = list(set(labels[inds]))
-				if -1 in per_t_cls[i]:
-					per_t_cls[i].pop(per_t_cls[i].index(-1))
-				cls_weights = [c_weights[x] for x in per_t_cls[i]]
-				per_t_cls[i] = [x for _,x in sorted(zip(cls_weights,per_t_cls[i]), reverse=True)]
-			sc_register_time(t, 'clust_per_t')
-
-			# compute list of consecutive empty sal maps (cesms)
-			t = cv2.getTickCount()
-			cesms = []
-			started = False
-			current_empty_segm = []
-			for i in range(d):
-				if max_cl not in per_t_cls[i]:
-					current_empty_segm.append(i)
-					started = True
-				if max_cl in per_t_cls[i]:
-					if started:
-						cesms.append(current_empty_segm)
-						current_empty_segm = []
-						started=False
-			if len(current_empty_segm)>0:
-				cesms.append(current_empty_segm)
-			sc_register_time(t, 'clust_cesm')
-			
-			
-			# handle empty sal maps
-			t = cv2.getTickCount()
-			select_cl = [max_cl] * d # init selected c. to max weight c.
-			for i in range(len(cesms)):
-				
-				# compute 
-				last_true_ind = VD['true_inds'][fc_offset+cesms[i][-1]]
-				first_true_ind = VD['true_inds'][fc_offset+cesms[i][0]]
-				true_fc_len = last_true_ind - first_true_ind 
-								
-				if true_fc_len<min_fc_cut:
-					pass # will be hanlded by main method
-				else:
-					# create a list with 
-					# the first of next clusters for each sal map
-					# (cluster in per_t_cls are sorted)
-					cls = []
-					for j in cesms[i]:
-						if len(per_t_cls[j])>0:
-							cls.append(per_t_cls[j][0])
-							
-					# if no alternative clusters were found
-					# for this segment, continue
-					# this will be hanlded by main method
-					if len(cls)==0:
-						continue
-							
-					# find the most common cluster
-					# it's OK if the cluster is not present in all frames
-					# this will be hanlded by main method
-					most_common_cl = max(cls, key=cls.count)
-					
-					# assign the segment's maps the new cluster and 
-					# insert a new cut
-					extra_cuts.append(cesms[i][0])
-					for j in cesms[i]:
-						select_cl[j] = most_common_cl
-			sc_register_time(t, 'clust_empty_handle')
-				
-			# filter
-			t = cv2.getTickCount()
-			sal_3d_resized_backup = np.copy(sal_3d_resized)
-			selX = []
-			for i in range(len(X)):
-				if labels[i] != select_cl[X[i][2]]:
-					sal_3d_resized[X[i][0], X[i][1], X[i][2]] = 0
-				else:
-					selX.append([X[i][0], X[i][1], X[i][2]])
-			selX = np.array(selX)
-			sc_register_time(t, 'clust_filtering')
-
-			# morphological close
-			t = cv2.getTickCount()
-			closing_kernel = np.ones((5, 5), np.uint8)
-			if close:
-				for i in range(d):
-					sal_3d_resized[:,:,i] = cv2.morphologyEx(np.squeeze(sal_3d_resized[:,:,i]), 
-															cv2.MORPH_CLOSE,
-															closing_kernel)
-			sc_register_time(t, 'clust_closing')
-
-			# check for empty sal maps
-			if verbose:
-				print('   - segment (selected cluster %d)' % (max_cl))
-				for i in range(d):
-					empty_str=' '
-					if np.sum(sal_3d_resized[:,:,i])==0:
-						empty_str='*'
-					print('     %3d %s %-16s (selected=%d)' % (i,empty_str, str(per_t_cls[i]), select_cl[i]))
-			
-		# plot after	
-		t = cv2.getTickCount()	
-		if plots_fn:
-			ax2 = fig.add_subplot(122, projection='3d')
-			sh = ax2.scatter(selX[:, 1], selX[:, 2], selX[:, 0], marker="s", s=40, cmap="RdBu")
-			ax2.set_xlabel('x')
-			ax2.set_ylabel('t')
-			ax2.set_zlabel('y')
-			ax2.set_xlim((0, sal_3d_resized.shape[1]))
-			ax2.set_ylim((0, sal_3d_resized.shape[2]))
-			ax2.set_zlim((0, sal_3d_resized.shape[0]))
-			ax2.grid(True)
-		sc_register_time(t, 'clust_plot')
-
-	# save figure and clean up
-	t = cv2.getTickCount()
-	if plots_fn:
-		plt.savefig(plots_fn,bbox_inches='tight')
-		plt.close(fig)
-		del fig
-	sc_register_time(t, 'clust_plot')
-	
-	# resize back
-	if factor==1.0:
-		sc_register_time(cv2.getTickCount(), 'clust_resize_2')
-		return sal_3d_resized, extra_cuts
-	t = cv2.getTickCount()
-	sal_3d_map.fill(0)
-	for i in range(d):
-		sal_3d_map[:, :, i] = cv2.resize(sal_3d_resized[:, :, i], (ow, oh), interpolation=cv2.INTER_LINEAR)
-	sc_register_time(t, 'clust_resize_2')
-	return sal_3d_map, extra_cuts
-
-def sc_clustering_filt_3d_fast(sal_3d_map, 
-								CP, VD, fc_offset,
-								plots_fn='', verbose=False):
-	# will hold the extra cuts that must be inserter
-	extra_cuts = []
-				
-	# if an empty saliency volume was given, return it
-	if np.sum(sal_3d_map)==0:
-		return sal_3d_map, extra_cuts
-	
-	# parameters aliases for quick reference
-	factor = CP['resize_factor']
-	select_sum = CP['select_sum']
-	bias = CP['value_bias']
-	close = CP['op_close']
-	min_t_cut = CP['min_t_cut']
-	skip = CP['skip']
-	fr = VD['fr']
-	
-	# compute min count of consecutive empty sal. maps
-	# to select next cluster
-	min_fc_cut=	int(float(min_t_cut*fr))
-	
-	# init figure
-	t = cv2.getTickCount()
-	if plots_fn:
-		fig = plt.figure()
-	sc_register_time(t, 'clust_plot')
-		
-	# resize for faster operations
-	t = cv2.getTickCount()
-	oh = int(sal_3d_map.shape[0])
-	ow = int(sal_3d_map.shape[1])
-	nh = int(oh / factor)
-	nw = int(ow / factor)
-	d = sal_3d_map.shape[2]
-	if factor!=1.0:
-		sal_3d_resized = np.zeros((nh, nw, d), dtype='uint8')
-		for i in range(d):
-			sal_3d_resized[:,:,i] = cv2.resize(sal_3d_map[:,:,i], 
-										(nw, nh), 
-										interpolation=cv2.INTER_LINEAR)
-	else:
-		sal_3d_resized=sal_3d_map
-	sc_register_time(t, 'clust_resize_1')
-	
-	# init & gather points
-	t = cv2.getTickCount()
-	X = []
-	W = []
-	inds = np.argwhere(sal_3d_resized > 0)
-	for ind in inds:
-		X.append([ind[0], ind[1], ind[2], 
-				sal_3d_resized[ind[0],ind[1],ind[2]]])
-		W.append(X[-1][3])
-	l = len(X)
-	W = np.array(W).transpose()
-	sc_register_time(t, 'clust_gather')
-	
-	# check dimensions of X
-	X = np.array(X)
-	if len(X.shape)<2:
-		print(sal_3d_map)
-		print(X)
-		print(X.shape)
-		input('...')
-
-	# X rows: x,y,t,val
-	# bias 4th row (value of sal map)
-	t = cv2.getTickCount()
-	max_dim = max(nh, nw)
-	X[:, 3] = ((X[:, 3] / np.amax(X[:, 3])) * max_dim * bias)
-	X = X.astype(np.uint8)
-	sc_register_time(t, 'clust_bias')
-	
-	# clustering: call multi-pytorch-kmeans	
-	labels,centers,distances,n_clusters=sc_multi_kmeans(X,verbose=verbose)
-		
-	# print info
-	if verbose:
-		print('   saliency volume:', sal_3d_map.shape)
-		print('   X:', X.shape)
-		print('   d =',d)
-		print('   labels len =', len(labels))
-		print('   n_clusters =', n_clusters)
-				
-	# plot before
-	t = cv2.getTickCount()
-	if plots_fn:
-		ax = fig.add_subplot(121, projection='3d')
-		sh = ax.scatter(X[:, 1], X[:, 2], X[:, 0], marker="s", c=labels, s=40, cmap="RdBu")
-		ax.set_xlabel('x')
-		ax.set_ylabel('t')
-		ax.set_zlabel('y')
-		ax.set_xlim((0, sal_3d_resized.shape[1]))
-		ax.set_ylim((0, sal_3d_resized.shape[2]))
-		ax.set_zlim((0, sal_3d_resized.shape[0]))
-		lg = ax.legend(*sh.legend_elements(), loc='best', title="Clusters")
-		ax.grid(True)
-	sc_register_time(t, 'clust_plot')
-	
-	# continue only if more than one clusters
-	if n_clusters > 0:
-
-		# calculate weight of each cluster
-		t = cv2.getTickCount()
-		c_weights = [0] * n_clusters
-		for i in range(n_clusters):
-			inds = list(np.where(labels == i)[0])
-			if select_sum == 1:
-				c_weights[i] = np.sum(W[inds])
-			else:
-				c_weights[i] = np.amax(W[inds])
-		max_cl = c_weights.index(max(c_weights))
-		sc_register_time(t, 'clust_weighting')
-
-		# calculate per frame the dominant cluster
-		t = cv2.getTickCount()
-		per_t_cls = [0] * d
-		for i in range(d):
-			inds = list(np.where(X[:, 2] == i)[0])
-			per_t_cls[i] = list(set(labels[inds]))
-			if -1 in per_t_cls[i]:
-				per_t_cls[i].pop(per_t_cls[i].index(-1))
-			cls_weights = [c_weights[x] for x in per_t_cls[i]]
-			per_t_cls[i] = [x for _,x in sorted(zip(cls_weights,per_t_cls[i]), reverse=True)]
-		sc_register_time(t, 'clust_per_t')
-
-		# compute list of consecutive empty sal maps (cesms)
-		t = cv2.getTickCount()
-		cesms = []
-		started = False
-		current_empty_segm = []
-		for i in range(d):
-			if max_cl not in per_t_cls[i]:
-				current_empty_segm.append(i)
-				started = True
-			if max_cl in per_t_cls[i]:
-				if started:
-					cesms.append(current_empty_segm)
-					current_empty_segm = []
-					started=False
-		if len(current_empty_segm)>0:
-			cesms.append(current_empty_segm)
-		sc_register_time(t, 'clust_cesm')
-		
-		
-		# handle empty sal maps
-		t = cv2.getTickCount()
-		select_cl = [max_cl] * d # init selected c. to max weight c.
-		for i in range(len(cesms)):
-			
-			# compute 
-			last_true_ind = VD['true_inds'][fc_offset+cesms[i][-1]]
-			first_true_ind = VD['true_inds'][fc_offset+cesms[i][0]]
-			true_fc_len = last_true_ind - first_true_ind 
-							
-			if true_fc_len<min_fc_cut:
-				pass # will be hanlded by main method
-			else:
-				# create a list with 
-				# the first of next clusters for each sal map
-				# (cluster in per_t_cls are sorted)
-				cls = []
-				for j in cesms[i]:
-					if len(per_t_cls[j])>0:
-						cls.append(per_t_cls[j][0])
-						
-				# if no alternative clusters were found
-				# for this segment, continue
-				# this will be hanlded by main method
-				if len(cls)==0:
-					continue
-						
-				# find the most common cluster
-				# it's OK if the cluster is not present in all frames
-				# this will be hanlded by main method
-				most_common_cl = max(cls, key=cls.count)
-				
-				# assign the segment's maps the new cluster and 
-				# insert a new cut
-				extra_cuts.append(cesms[i][0])
-				for j in cesms[i]:
-					select_cl[j] = most_common_cl
-		sc_register_time(t, 'clust_empty_handle')
-			
-		# filter
-		t = cv2.getTickCount()
-		sal_3d_resized_backup = np.copy(sal_3d_resized)
-		selX = []
-		for i in range(len(X)):
-			if labels[i] != select_cl[X[i][2]]:
-				sal_3d_resized[X[i][0], X[i][1], X[i][2]] = 0
-			else:
-				selX.append([X[i][0], X[i][1], X[i][2]])
-		selX = np.array(selX)
-		sc_register_time(t, 'clust_filtering')
-
-		# morphological close
-		t = cv2.getTickCount()
-		closing_kernel = np.ones((5, 5), np.uint8)
-		if close:
-			for i in range(d):
-				sal_3d_resized[:,:,i] = cv2.morphologyEx(np.squeeze(sal_3d_resized[:,:,i]), 
-														cv2.MORPH_CLOSE,
-														closing_kernel)
-		sc_register_time(t, 'clust_closing')
-
-		# check for empty sal maps
-		if verbose:
-			print('   - segment (selected cluster %d)' % (max_cl))
-			for i in range(d):
-				empty_str=' '
-				if np.sum(sal_3d_resized[:,:,i])==0:
-					empty_str='*'
-				print('     %3d %s %-16s (selected=%d)' % (i,empty_str, str(per_t_cls[i]), select_cl[i]))
-		
-	# plot after	
-	t = cv2.getTickCount()	
-	if plots_fn:
-		ax2 = fig.add_subplot(122, projection='3d')
-		sh = ax2.scatter(selX[:, 1], selX[:, 2], selX[:, 0], marker="s", s=40, cmap="RdBu")
-		ax2.set_xlabel('x')
-		ax2.set_ylabel('t')
-		ax2.set_zlabel('y')
-		ax2.set_xlim((0, sal_3d_resized.shape[1]))
-		ax2.set_ylim((0, sal_3d_resized.shape[2]))
-		ax2.set_zlim((0, sal_3d_resized.shape[0]))
-		ax2.grid(True)
-	sc_register_time(t, 'clust_plot')
-
-	# save figure and clean up
-	t = cv2.getTickCount()
-	if plots_fn:
-		plt.savefig(plots_fn,bbox_inches='tight')
-		plt.close(fig)
-		del fig
-	sc_register_time(t, 'clust_plot')
-	
-	# resize back
-	if factor==1.0:
-		sc_register_time(cv2.getTickCount(), 'clust_resize_2')
-		return sal_3d_resized, extra_cuts
-	t = cv2.getTickCount()
-	sal_3d_map.fill(0)
-	for i in range(d):
-		sal_3d_map[:, :, i] = cv2.resize(sal_3d_resized[:, :, i], (ow, oh), interpolation=cv2.INTER_LINEAR)
-	sc_register_time(t, 'clust_resize_2')
-	
-	return sal_3d_map, extra_cuts
-
-def sc_clustering_filt(hdbs_clusterer, sal_map, CP,	verbose=False):
+def sc_clustering_filt(hdbs_clusterer, sal_map, CP,	verbose=False, plots_fn=''):
 	# if an empty saliency volume was given, return it
 	if np.sum(sal_map)==0:
 		return sal_map
 		
-	# parameters aliases for quick reference			
+	# parameters aliases for quick reference	
 	factor=CP['resize_factor']
 	select_sum=CP['select_sum']
 	bias=CP['value_bias']
 	close=CP['op_close']
-								
+	resize_type=CP['resize_type']
+	
 	# resize for faster operation
 	t = cv2.getTickCount()
 	initH = sal_map.shape[0]
 	initW = sal_map.shape[1]
 	if factor!=1.0:
-		sal_map = cv2.resize(sal_map, None, fx=1.0/factor, fy=1.0/factor, interpolation=cv2.INTER_LINEAR)
+		if resize_type==1:
+			sal_map = cv2.resize(sal_map, None, fx=1.0/factor, fy=1.0/factor, interpolation=cv2.INTER_LINEAR)
+		elif resize_type==2:
+			sal_map = cv2.resize(sal_map, None, fx=1.0/factor, fy=1.0/factor, interpolation=cv2.INTER_CUBIC)
+		elif resize_type==3:
+			sal_map = cv2.resize(sal_map, None, fx=1.0/factor, fy=1.0/factor, interpolation=cv2.INTER_NEAREST)
 	sc_register_time(t, 'clust_resize_1')
 
 	# init & gather points
 	t = cv2.getTickCount()
 	coo = coo_matrix(sal_map).tocoo()
-	X = np.vstack((coo.row, coo.col, coo.data)).transpose()
+	#X = np.vstack((coo.row, coo.col, coo.data)).transpose()
+	X = np.vstack((coo.row, coo.col)).transpose()
 	W = coo.data.transpose()
 	sc_register_time(t, 'clust_gather')
 	
-	# check dimensions of X
-	if len(X.shape)<2:
-		print(sal_map)
-		print(X)
-		print(X.shape)
-		input('...')
+	# # bias value of saliency map
+	# t = cv2.getTickCount()
+	# max_dim = max([initH/factor, initW/factor])
+	# X[:, 2] = ((X[:, 2] / np.amax(X[:, 2])) * max_dim * bias).astype(np.uint8)
+	# sc_register_time(t, 'clust_bias')
 	
-	# bias value of saliency map
-	t = cv2.getTickCount()
-	max_dim = max([initH / factor, initW / factor])
-	X[:, 2] = ((X[:, 2] / np.amax(X[:, 2])) * max_dim * bias).astype(np.uint8)
-	sc_register_time(t, 'clust_bias')
 
-
+	n_clusters=-1 
 	if X.shape[0] > CP['hdbscan_min'] + 1:
 		# cluster
 		t = cv2.getTickCount()
@@ -1398,7 +822,7 @@ def sc_clustering_filt(hdbs_clusterer, sal_map, CP,	verbose=False):
 			t = cv2.getTickCount()
 			for i in range(len(X)):
 				if labels[i] != max_cl:
-					sal_map[X[i][0], X[i][1]] = 0
+					sal_map[int(X[i][0]), int(X[i][1])] = 0
 			sc_register_time(t, 'clust_filter')
 
 			# morphological close
@@ -1407,86 +831,28 @@ def sc_clustering_filt(hdbs_clusterer, sal_map, CP,	verbose=False):
 				closing_kernel = np.ones((5, 5), np.uint8)
 				sal_map = cv2.morphologyEx(sal_map, cv2.MORPH_CLOSE, closing_kernel)
 			sc_register_time(t, 'clust_closing')
-
-	# scale back image
-	if factor==1.0:
-		sc_register_time(cv2.getTickCount(), 'clust_resize_2')
-		return sal_map
-	t = cv2.getTickCount()
-	sal_map = cv2.resize(sal_map, (initW, initH), interpolation=cv2.INTER_LINEAR)
-	sc_register_time(t, 'clust_resize_2')
 	
-	return sal_map
-	
-def sc_clustering_filt_fast(sal_map, CP, verbose=False):
-	# if an empty saliency volume was given, return it
-	if np.sum(sal_map)==0:
-		return sal_map
-		
-	# parameters aliases for quick reference			
-	factor=CP['resize_factor']
-	select_sum=CP['select_sum']
-	bias=CP['value_bias']
-	close=CP['op_close']
-								
-	# resize for faster operation
-	t = cv2.getTickCount()
-	initH = sal_map.shape[0]
-	initW = sal_map.shape[1]
-	if factor!=1.0:
-		sal_map = cv2.resize(sal_map, None, fx=1.0/factor, fy=1.0/factor, interpolation=cv2.INTER_LINEAR)
-	sc_register_time(t, 'clust_resize_1')
-
-	# init & gather points
-	t = cv2.getTickCount()
-	coo = coo_matrix(sal_map).tocoo()
-	X = np.vstack((coo.row, coo.col, coo.data)).transpose()
-	W = coo.data.transpose()
-	sc_register_time(t, 'clust_gather')
-	
-	# check dimensions of X
-	if len(X.shape)<2:
-		print(sal_map)
-		print(X)
-		print(X.shape)
-		input('...')
-	
-	# bias value of saliency map
-	t = cv2.getTickCount()
-	max_dim = max([initH / factor, initW / factor])
-	X[:, 2] = ((X[:, 2] / np.amax(X[:, 2])) * max_dim * bias).astype(np.uint8)
-	sc_register_time(t, 'clust_bias')
-
-	# clustering: call multi-pytorch-kmeans	
-	labels,centers,distances,n_clusters=sc_multi_kmeans(X,verbose=verbose)
-		
-	if n_clusters > 0:
-		
-		# calculate weight of each cluster
-		t = cv2.getTickCount()
-		weights = [0] * n_clusters
-		for i in range(n_clusters):
-			inds = list(np.where(labels == i)[0])
-			if select_sum == 1:
-				weights[i] = np.sum(W[inds])
-			else:
-				weights[i] = np.amax(W[inds])
-		max_cl = weights.index(max(weights))
-		sc_register_time(t, 'clust_weighting')
-
-		# filter
-		t = cv2.getTickCount()
-		for i in range(len(X)):
-			if labels[i] != max_cl:
-				sal_map[X[i][0], X[i][1]] = 0
-		sc_register_time(t, 'clust_filter')
-
-		# morphological close
-		t = cv2.getTickCount()
-		if close:
-			closing_kernel = np.ones((5, 5), np.uint8)
-			sal_map = cv2.morphologyEx(sal_map, cv2.MORPH_CLOSE, closing_kernel)
-		sc_register_time(t, 'clust_closing')
+	# plot after	
+	t = cv2.getTickCount()	
+	if plots_fn:
+		fig = plt.figure()
+		if n_clusters==-1:
+			plt.scatter(X[:,0] , X[:,1], label='unclustered')
+		else:
+			for i in range(n_clusters):
+				legend = 'c. '+str(i+1)+'/'+str(n_clusters)+ ' ('+str(np.sum(labels==i))+')'
+				if i==max_cl:
+					legend=legend+'*'
+				plt.scatter(X[labels==i,1] , X[labels==i,0], label=legend)
+			legend = 'out. ('+str(np.sum(labels==-1))+')'
+			plt.scatter(X[labels==-1,1] , X[labels==-1,0], label=legend)
+		plt.legend()
+		plt.xlim(0, sal_map.shape[1])
+		plt.ylim(0, sal_map.shape[0])
+		plt.savefig(plots_fn,bbox_inches='tight')
+		plt.close(fig)
+		del fig
+	sc_register_time(t, 'clust_plot')
 
 	# scale back image
 	if factor==1.0:
@@ -1519,7 +885,7 @@ def sc_find_center_of_mass(sal_map, km=True, factor=2.0, bias=1.0, verbose=False
 	t = cv2.getTickCount()
 	initH = sal_map.shape[0]
 	initW = sal_map.shape[1]
-	sal_map = cv2.resize(sal_map, None, fx=1/factor, fy=1/factor, interpolation=cv2.INTER_NEAREST)
+	sal_map = cv2.resize(sal_map, None, fx=1.0/factor, fy=1.0/factor, interpolation=cv2.INTER_NEAREST)
 	sc_register_time(t, 'center_of_mass_resize')
 	
 	# save time for gather
@@ -1642,6 +1008,9 @@ def sc_handle_empty_centers(VD, verbose=False):
 def sc_compute_mean_sal(vid_data, crop_params):
 	# check mean saliency to decide whether to continue
 	vid_data['mean_sal_score'] = np.average(vid_data['smaps'])
+	print(vid_data['smaps'].shape)
+	vid_data['mean_sal_scores'] = np.average(vid_data['smaps'], axis=(0,1))
+	print(vid_data['mean_sal_scores'].shape)
 	return vid_data
 
 def sc_compute_cvrg_score(vid_data, crop_params):
@@ -1669,7 +1038,7 @@ def sc_compute_cvrg_score(vid_data, crop_params):
 
 # Methods for checking if extra cuts are to be inserted 
 # based on the jump of focus center on the saliency map
-def get_points_on_line(p1x, p1y, p2x, p2y, imageW, imageH, min_d=10):
+def get_points_on_line(p1x, p1y, p2x, p2y, imageW, imageH, min_d=1):
 	# difference and absolute difference between points
 	# used to calculate slope and relative location between points
 	dX = p2x - p1x
@@ -2015,8 +1384,6 @@ def sc_smoothing(vid_data, loess_filt, window_to_fr, degree,
 		# loess on x
 		dxs = loess_handler(t_vec, dxi_lp, loess_filt, adj_window, degree)
 
-				
-
 					
 		# get x and pad end with last value if this is the last segment
 		dyi = np.array(vid_data['dyi'][si:ei])
@@ -2170,18 +1537,24 @@ def sc_renderer(vid_data, crop_params,
 	DEMO_BACK_COLOR_A = (0, 0, 0, 255)
 	DEMO_FONT_POS = (2, 15)
 	DEMO_FONT_POS2 = (2, 30)
+	DEMO_FONT_POS2X = (50, 30)
 	DEMO_FONT_POS3 = (2, 45)
 	DEMO_FONT_POS4 = (2, 60)
 	DEMO_FONT_POS5 = (2, 75)
+	DEMO_FONT_POS6 = (2, 90)
 	DEMO_LINE_COLOR = (0, 255, 0)
 	fade_len = fr
-	past_steps = int(fr/3.0)
+	past_steps = int(fr/5.0)
 	
 	# cut faders
 	fade_out_cut = 0
+	fade_out_jump = 0
 	fade_out_clust = 0
 	fade_out_extra = 0
-
+	frames_written_final = 0
+	frames_written_demo = 0
+	frames_read_original = 0
+	
 	# read video
 	if out_path or demo_path:
 		fvs = FileVideoStream(vid_path).start()
@@ -2194,11 +1567,9 @@ def sc_renderer(vid_data, crop_params,
 			if frame is None:
 				break
 			iii += 1
-			print('\r input read %d/%d...' % (iii+1,fc), end='')
-			
-			# if no available bounding boxes then stop
-			if iii+1==len(bbs):
-				break
+			frames_read_original += 1
+			if iii%50==0 or iii>fc-10:
+				print('\r read %d/%d...' % (iii+1,fc), end='')
 				
 			# get bounding box coordinates
 			bx1, by1, bx2, by2 = bbs[iii]
@@ -2210,6 +1581,7 @@ def sc_renderer(vid_data, crop_params,
 				out_final_contiguous_frame = np.ascontiguousarray(\
 									np.copy(frame[by1:by2, bx1:bx2, :]))
 				out_final.write(out_final_contiguous_frame)
+				frames_written_final += 1
 
 
 			# if demo video is set...
@@ -2235,7 +1607,37 @@ def sc_renderer(vid_data, crop_params,
 									cv2.COLOR_BGRA2BGR), 0.5, 
 									0, frame_overlayedx)
 
-				
+				# plot current non-fixed center and 5 old non-fixed centers on filtered saliency
+				# frame_sal_procedx
+				if vid_data['dxnf'][m[iii]]!=vid_data['dx'][m[iii]] or\
+					vid_data['dynf'][m[iii]]!=vid_data['dy'][m[iii]]:
+					cv2.circle(frame_sal_procedx, 
+										(int(vid_data['dxnf'][m[iii]]),
+										int(vid_data['dynf'][m[iii]])), 
+										5, (0,0,255,255),
+										lineType=cv2.LINE_AA,
+										thickness=-1)
+					for j in range(1,past_steps):
+						if iii-j>=0:
+							current_color = (0,0,255-(j*20)-20,255-(j*50))
+							cv2.circle(frame_sal_procedx,
+										(int(vid_data['dxnf'][m[iii]-j]),
+										int(vid_data['dynf'][m[iii]-j])), 
+										2, current_color,
+										lineType=cv2.LINE_AA,
+										thickness=past_steps-j)
+					for j in range(1,past_steps):
+						if iii-j>0:
+							current_color = (0,0,255-(j*20)-20,255-(j*50))
+							cv2.line(frame_sal_procedx,
+										(int(vid_data['dxnf'][m[iii]-j]),
+										 int(vid_data['dynf'][m[iii]-j])), 
+										(int(vid_data['dxnf'][m[iii]-j-1]),
+										 int(vid_data['dynf'][m[iii]-j-1])), 
+										current_color,
+										lineType=cv2.LINE_AA,
+										thickness=past_steps-j)
+										
 				# plot current center and 5 old centers on filtered saliency
 				# frame_sal_procedx
 				cv2.circle(frame_sal_procedx, 
@@ -2246,7 +1648,7 @@ def sc_renderer(vid_data, crop_params,
 									thickness=-1)
 				for j in range(1,past_steps):
 					if iii-j>=0:
-						current_color = (0,255-(j*10)-20,0,255-(j*30))
+						current_color = (0,255-(j*20)-20,0,255-(j*50))
 						cv2.circle(frame_sal_procedx,
 									(int(vid_data['dx'][m[iii]-j]),
 									int(vid_data['dy'][m[iii]-j])), 
@@ -2255,16 +1657,18 @@ def sc_renderer(vid_data, crop_params,
 									thickness=past_steps-j)
 				for j in range(1,past_steps):
 					if iii-j>0:
-						current_color = (0,255-(j*10)-20,0,255-(j*30))
+						current_color = (0,255-(j*20)-20,0,255-(j*50))
 						cv2.line(frame_sal_procedx,
 									(int(vid_data['dx'][m[iii]-j]),
-									int(vid_data['dy'][m[iii]-j])), 
+									 int(vid_data['dy'][m[iii]-j])), 
 									(int(vid_data['dx'][m[iii]-j-1]),
-									int(vid_data['dy'][m[iii]-j]-1)), 
+									 int(vid_data['dy'][m[iii]-j-1])), 
 									current_color,
 									lineType=cv2.LINE_AA,
 									thickness=past_steps-j)
 				
+
+									
 				# print jump score in second line
 				cv2.putText(frame_sal_procedx, 'jump:%d' % \
 									(vid_data['jumps'][m[iii]]), 
@@ -2277,57 +1681,41 @@ def sc_renderer(vid_data, crop_params,
 									DEMO_FONT_SCALE, DEMO_FONT_COLOR_A,
 									lineType=cv2.LINE_AA, thickness=1)
 
-								
+				# print clustering cut in fourth line
+				if vid_data['jumps'][m[iii]] < crop_params['foces_stab_t']:
+					fade_out_jump = fade_len
+				if fade_out_jump>0:
+					cv2.putText(frame_sal_procedx, 'jump', 
+									DEMO_FONT_POS3, DEMO_FONT, 
+									DEMO_FONT_SCALE,
+									(0,0,0,fade_out_jump*int(255/fade_len)),
+									lineType=cv2.LINE_AA, thickness=2)
+					cv2.putText(frame_sal_procedx, 'jump',
+									DEMO_FONT_POS6, DEMO_FONT, 
+									DEMO_FONT_SCALE,
+									(255,255,255,fade_out_jump*int(255/fade_len)),
+									lineType=cv2.LINE_AA, thickness=1)
+					fade_out_jump -= 1
+					
+					
 				# print original cut in third line
 				if iii in vid_data['segm_backup']:
 					fade_out_cut = fade_len
 				if fade_out_cut>0:
-					cv2.putText(frame_sal_procedx, 'orig. cut', 
-									DEMO_FONT_POS3, DEMO_FONT, 
-									DEMO_FONT_SCALE, 
+					cv2.putText(frame_sal_procedx, 'orig. cut',
+									DEMO_FONT_POS4, DEMO_FONT,
+									DEMO_FONT_SCALE,
 									(0,0,0,fade_out_cut*int(255/fade_len)),
 									lineType=cv2.LINE_AA, thickness=2)
 					cv2.putText(frame_sal_procedx, 'orig. cut',
-									DEMO_FONT_POS3, DEMO_FONT, 
-									DEMO_FONT_SCALE, 
+									DEMO_FONT_POS4, DEMO_FONT,
+									DEMO_FONT_SCALE,
 									(255,255,255,fade_out_cut*int(255/fade_len)),
 									lineType=cv2.LINE_AA, thickness=1)
 					fade_out_cut -= 1
-									
-				# print clustering cut in fourth line
-				vid_data['extra_clust_cuts_at']
-				if m[iii] in vid_data['extra_clust_cuts_at']:
-					fade_out_clust = fade_len
-				if fade_out_clust>0:
-					cv2.putText(frame_sal_procedx, 'clust. cut', 
-									DEMO_FONT_POS4, DEMO_FONT, 
-									DEMO_FONT_SCALE,
-									(0,0,0,fade_out_clust*int(255/fade_len)),
-									lineType=cv2.LINE_AA, thickness=2)
-					cv2.putText(frame_sal_procedx, 'clust. cut',
-									DEMO_FONT_POS4, DEMO_FONT, 
-									DEMO_FONT_SCALE,
-									(255,255,255,fade_out_clust*int(255/fade_len)),
-									lineType=cv2.LINE_AA, thickness=1)
-					fade_out_clust -= 1
 
-				# print extra cut in fifth line
-				vid_data['extra_cuts_at']
-				if m[iii] in vid_data['extra_cuts_at']:
-					fade_out_extra = fade_len
-				if fade_out_extra>0:
-					cv2.putText(frame_sal_procedx, 'xtra cut', 
-									DEMO_FONT_POS5, DEMO_FONT, 
-									DEMO_FONT_SCALE,
-									(0,0,0,fade_out_extra*int(255/fade_len)),
-									lineType=cv2.LINE_AA, thickness=2)
-					cv2.putText(frame_sal_procedx, 'xtra cut',
-									DEMO_FONT_POS5, DEMO_FONT, 
-									DEMO_FONT_SCALE, 
-									(255,255,255,fade_out_extra*int(255/fade_len)),
-									lineType=cv2.LINE_AA, thickness=1)
-					fade_out_extra -= 1
 
+					
 				# now that all text is printed discard alpha channel
 				# (frame_sal_procedx)
 				frame_sal_procedx = cv2.cvtColor(frame_sal_procedx,
@@ -2402,6 +1790,7 @@ def sc_renderer(vid_data, crop_params,
 				out_final_contiguous_frame = np.ascontiguousarray(\
 									np.copy(tempx))
 				out_demo.write(out_final_contiguous_frame)
+				frames_written_demo += 1
 				
 				# clean up
 				del framex
@@ -2411,11 +1800,7 @@ def sc_renderer(vid_data, crop_params,
 				del frame_final_bbx
 				del tempx
 				del out_final_contiguous_frame
-									
-			# if last frame force break
-			if iii+1==fc:
-				break
-
+			
 	# free video reader
 	if out_path or demo_path:
 		fvs.stop()
@@ -2423,29 +1808,29 @@ def sc_renderer(vid_data, crop_params,
 		
 	# free video writers
 	if out_path:
-		if out_final is not None:
-			out_final.release()
+		out_final.release()
 	if demo_path:
+		out_demo.release()
+		
+		
+	# sanity checks
+	if True:
+		print('bounding boxes x length:', len(vid_data['dxs']))
+		print('bounding boxes y length:', len(vid_data['dys']))
+		print('frames_read_original:', frames_read_original)
+		print('frames_written_final:', frames_written_final)
+		print('frames_written_demo:', frames_written_demo)
+		print('original frame rate:', vid_data['fr'])
+		if out_final is not None:
+			video = cv2.VideoCapture(out_path);
+			fps = video.get(cv2.CAP_PROP_FPS)
+			print('final video frame rate:', fps)
+			video.release()
 		if out_demo is not None:
-			out_demo.release()
-			
-	# if demo was created then enlarge and drop frame rate 
-	# for more detailed view
-	temp_demo_path = demo_path.replace('.mp4', '.temp.mp4')
-	enlarged_h = int(process_h*1.5)
-	enlarged_w = 5*int(process_w*1.5)
-	if enlarged_h%2==1:
-		enlarged_h+=1
-	if enlarged_w%2==1:
-		enlarged_w+=1
-	str_ffmpeg_scale = '%dx%d' % (enlarged_h,enlarged_w)
-	ffmpeg.input(demo_path) \
-			.filter('fps', fps=int(fr/1.5), round='up') \
-			.filter('scale', str_ffmpeg_scale) \
-			.output(temp_demo_path) \
-			.run(overwrite_output=True)
-	os.remove(demo_path)
-	os.rename(temp_demo_path, demo_path)
+			video = cv2.VideoCapture(demo_path);
+			fps = video.get(cv2.CAP_PROP_FPS)
+			print('demo video frame rate:', fps)
+			video.release()
 
 # Renders padded version of video
 def sc_render_padded(vid_data, crop_params, vid_path, out_path, verbose=False):
@@ -2507,13 +1892,10 @@ def sc_render_padded(vid_data, crop_params, vid_path, out_path, verbose=False):
 	out_final.release()
 	
 
-	
-	
-	
-	
+
 	
 def smart_vid_crop(video_path, CP=None, 
-				demo_fn='', final_vid_fn='', plots_fn='', temp_path=None,
+				demo_fn='', final_vid_fn='', plots_fn='', frames_dir='', temp_path=None,
 				verbose=False, save_vid=True):
 	# clear registered time measurements
 	sc_init_time()
@@ -2524,12 +1906,10 @@ def smart_vid_crop(video_path, CP=None,
 	# set padding trigger
 	do_pad = False
 	
-	# set figure filenames
-	plots_clust_fn = ''
+	# set signals plot filename
 	plots_signals_fn = ''
 	if plots_fn:
-		plots_clust_fn = plots_fn.replace('.','_clust.')
-		plots_signals_fn = plots_fn.replace('.','_signals.')
+		plots_signals_fn = plots_fn.replace('.png','_signals.png')
 
 	# ensure proper crop_params
 	if CP is None:
@@ -2579,9 +1959,9 @@ def smart_vid_crop(video_path, CP=None,
 	
 	# check mean saliency for resorting to padding
 	t = cv2.getTickCount()
+	print(' - Checking mean saliency... ')
+	VD = sc_compute_mean_sal(VD,CP)
 	if CP['exit_on_spread_sal']:
-		print(' - Checking mean saliency... ')
-		VD = sc_compute_mean_sal(VD,CP)
 		if VD['mean_sal']>CP['t_sal']:
 			do_pad = True
 			print('   (mean saliency: %.3f > %.3f - skipping...)' % \
@@ -2592,6 +1972,12 @@ def smart_vid_crop(video_path, CP=None,
 	else:
 		VD['mean_sal_score'] = None
 	sc_register_time(t, '_check_mean_sal')
+	
+	# get cuts of segmentation
+	segm_cuts = []
+	for i in range(VD['segmentation_sel'].shape[0]):
+		segm_cuts.append(VD['segmentation_sel'][i,0])
+	segm_cuts.append(VD['segmentation_sel'][-1,1])
 	
 	# threshold saliency map	
 	t = cv2.getTickCount()
@@ -2604,7 +1990,15 @@ def smart_vid_crop(video_path, CP=None,
 	
 	# clustering
 	t = cv2.getTickCount()
-	hdbs_clusterer = hdbscan.HDBSCAN(min_cluster_size=CP['hdbscan_min'], allow_single_cluster=True)
+	hdbs_clusterer = hdbscan.HDBSCAN(\
+		min_cluster_size=CP['hdbscan_min'], 	# 5
+		min_samples=CP['hdbscan_min_samples'],	# None
+		metric='sqeuclidean',					# [‘cityblock’, ‘cosine’, ‘euclidean’, ‘l1’, ‘l2’, ‘manhattan’]
+		approx_min_span_tree=True,				# True
+		gen_min_span_tree=False,				# False
+		cluster_selection_method='eom',			# 'eom', 'leaf'
+		core_dist_n_jobs=4,						# 4 
+		allow_single_cluster=True)				# False
 	sc_register_time(t, 'clust_init')
 
 	t = cv2.getTickCount()
@@ -2613,45 +2007,22 @@ def smart_vid_crop(video_path, CP=None,
 		if not CP['clust_filt']:
 			print(' - Skipping clustering... ')
 		else:
-			if CP['use_3d']:
-				print(' - Clustering 3D... ')
-				for i,s in enumerate(VD['segmentation_sel']):
-					fc_offset = 0 if i==0 else VD['segmentation_sel'][i-1][1]+1
-					if CP['use_fast']:
-						VD['smaps'][:, :, s[0]:s[1]+1], segment_extra_cuts = \
-							sc_clustering_filt_3d_fast(VD['smaps'][:,:,s[0]:s[1]+1],
-														CP, VD, fc_offset,
-														plots_fn=plots_clust_fn, 
-														verbose=verbose)	
-					else:
-						VD['smaps'][:, :, s[0]:s[1]+1], segment_extra_cuts = \
-							sc_clustering_filt_3d(hdbs_clusterer,
-								VD['smaps'][:,:,s[0]:s[1]+1],
-								CP, VD, fc_offset,
-								plots_fn=plots_clust_fn, 
-								verbose=verbose)	
-							
-					# add start of segment to extrac cuts indices
-					# to reflect true indices
-					segment_extra_cuts = [x+s[0] for x in segment_extra_cuts]
-					
-					# add current segment's cuts to total cuts list
-					total_clust_cuts = total_clust_cuts + segment_extra_cuts
-					
-			else:
-				print(' - Clustering... ')
-				for i in range(VD['fc_sel']):
-					if CP['use_fast']:
-						VD['smaps'][:,:,i] = \
-							sc_clustering_filt_fast(VD['smaps'][:,:,i],
-													CP,
-													verbose=verbose)
-					else:
-						VD['smaps'][:,:,i] = \
-							sc_clustering_filt(hdbs_clusterer,
-								VD['smaps'][:,:,i],
-								CP,
-								verbose=verbose)
+			print(' - Clustering... ')
+			for i in range(VD['fc_sel']):
+				if frames_dir:
+					plot_fn = os.path.join(frames_dir, '%06d.png'%i)
+				else:
+					plot_fn = ''
+				VD['smaps'][:,:,i] = sc_clustering_filt(hdbs_clusterer,
+						VD['smaps'][:,:,i],
+						CP,
+						plots_fn=plot_fn,
+						verbose=verbose)
+				if i<VD['fc_sel']-2: # if not end of video
+					if any(x in segm_cuts for x in [i-1,i,i+1]):
+						a = (VD['smaps'][:,:,i+1] + VD['smaps'][:,:,i]).astype('float')
+						a = a / 2.0
+						VD['smaps'][:,:,i+1] = a.astype('int')
 	smart_crop_results['cuts_clust'] = len(total_clust_cuts)
 	sc_register_time(t, '_clustering')
 	
@@ -2701,90 +2072,69 @@ def smart_vid_crop(video_path, CP=None,
 		print(' - Empty centers handling... ')
 		VD = sc_handle_empty_centers(VD, verbose=verbose)
 	sc_register_time(t, '_center_empty_handle')
-	
-	# check if we must insert extra cuts that result from 3d clustering
-	t = cv2.getTickCount()
-	VD['extra_clust_cuts_at'] = []
-	if not do_pad:
-		if len(total_clust_cuts)>0:
-			print(' - Clustering cuts (%d)...' % (len(total_clust_cuts)))
-			
-			# insert all clustering cuts - do not use scores
-			# (i.e. scores = [] and no_extra_cuts=None
-			VD, extra_clust_cuts_at, extra_clust_cuts_scores = \
-										sc_insert_cuts(VD,
-											total_clust_cuts, [],
-											no_extra_cuts=None,
-											verbose=verbose)
-										
-			# register clustering extra cuts in video data
-			VD['extra_clust_cuts_at'] = extra_clust_cuts_at
-	sc_register_time(t, '_insert_clust_cuts')
 		
-	# init jumps and extra cuts arrays
+	# compute jump statistics
 	VD['jumps'] = [255] * len(VD['dx'])
-	VD['extra_cuts_at'] = []
-	smart_crop_results['cuts_extra'] = 0
-	smart_crop_results['no_extra_cuts'] = CP['no_extra_cuts']
-	
-	# check if we must insert extra "focus change" cuts
-	t = cv2.getTickCount()
-	if not do_pad:
-		if CP['no_extra_cuts']>0:
-			print(' - Checking for focus change extra cuts... ')
-			extra_cuts_at = []
-			extra_cuts_scores = []
+	VD['jumps_inds'] = []
+	if CP['focus_stability']:
+		tt = cv2.getTickCount()
+				
+		# cycle though frames (sal. maps)
+		# and check center of mass jumps
+		if verbose:
+			print('   (sal. map shape:', VD['smaps'][:,:,0].shape, ')')
+		#VD['jumps_inds'].append(0)
+		for i in range(1,VD['fc_sel']):
+			mean_jump = sc_check_for_extra_cuts(CP, VD['smaps'][:,:,i],
+											VD['dx'][i-1],VD['dy'][i-1], 
+											VD['dx'][i],VD['dy'][i], 
+											verbose=verbose)
+											
+			# register mean saliency jump for demo purposes
+			VD['jumps'][i] = mean_jump
+			if mean_jump<CP['foces_stab_t']:
+				VD['jumps_inds'].append(i)
+		#VD['jumps_inds'].append(VD['fc_sel']-1)
 			
-			# get cuts of segmentation
-			segm_cuts = []
-			for i in range(VD['segmentation_sel'].shape[0]):
-				segm_cuts.append(VD['segmentation_sel'][i,0]-1)
-				segm_cuts.append(VD['segmentation_sel'][i,0])
-				segm_cuts.append(VD['segmentation_sel'][i,1])
-				segm_cuts.append(VD['segmentation_sel'][i,1]+1)
+		sc_register_time(tt, 'find_extra_cuts')
+	
+	# focus stability
+	VD['dxnf'] = VD['dx'].copy()
+	VD['dynf'] = VD['dy'].copy()
+	t = cv2.getTickCount()
+	if CP['focus_stability']:
+		for i in range(0,len(VD['jumps_inds'])-1):
+			start = max(VD['jumps_inds'][i]-1,0)
+			end = min(VD['jumps_inds'][i+1]+1,VD['fc_sel']-1)
+			dur = end-start
+			dur = (dur*CP['skip'])/VD['fr']
 				
-			# cycle though frames (sal. maps)
-			# and check center of mass jumps
-			tt = cv2.getTickCount()
-			if verbose:
-				print('   (sal. map shape:', VD['smaps'][:,:,0].shape, ')')
-			for i in range(1,VD['fc_sel']):
-				mean_jump = sc_check_for_extra_cuts(CP, VD['smaps'][:,:,i],
-												VD['dx'][i-1],VD['dy'][i-1], 
-												VD['dx'][i],VD['dy'][i], 
-												verbose=verbose)
-														
-				# if jump (=mean saliency of jumped pixels) is very low ...
-				if mean_jump<CP['t_cut']:
-					
-					# and current frame is not a cut of segmentation
-					if i not in segm_cuts:
-					
-						# then add current frame as extra cut
-						extra_cuts_at.append(i)
-						extra_cuts_scores.append(mean_jump)
+			print(' #%04d: %4d->%4d, t:%.3f' % (i, start, end, dur), end='')
 				
-				# register mean saliency jump for demo purposes
-				VD['jumps'][i] = mean_jump
-				
-			sc_register_time(tt, 'find_extra_cuts')
-
-			# do extra cuts in segmentation
-			tt = cv2.getTickCount()
-			if len(extra_cuts_at)>0:
-				smart_crop_results['cuts_extra'] = len(extra_cuts_at)
-				VD, extra_cuts_at, extra_cuts_scores = sc_insert_cuts(VD,
-										extra_cuts_at, extra_cuts_scores,
-										no_extra_cuts=CP['no_extra_cuts'],
-										verbose=verbose)
-										
-			# register extra cuts in video data 
-			# (filtered by sc_insert_cuts method)
-			VD['extra_cuts_at'] = extra_cuts_at
-			VD['extra_cuts_scores'] = extra_cuts_scores
-			sc_register_time(tt, 'insert_extra_cuts')
-	sc_register_time(t, '_extra_cuts')
-		
+			if dur>CP['foces_stab_s']:
+				print(' ignoring...')
+			else:
+				print(' ')
+				if False:
+					steps = end-start
+					x1=VD['dx'][start]
+					x2=VD['dx'][end]
+					y1=VD['dy'][start]
+					y2=VD['dy'][end]
+					stepx = math.floor(float(x2-x1)/float(steps))
+					stepy = math.floor(float(y2-y1)/float(steps))
+					print('    x1:%3d, x2:%3d, stepX:%.3f'%(x1,x2,stepx))
+					print('    y1:%3d, y2:%3d, stepY:%.3f'%(y1,y2,stepy))
+					for j in range(steps):
+						VD['dx'][start+j] = int(float(VD['dx'][start+j]) + stepx)
+						VD['dy'][start+j] = int(float(VD['dy'][start+j]) + stepy)
+				else:
+					steps = end-start
+					for j in range(steps):
+						VD['dx'][start+j] = VD['dx'][start]
+						VD['dy'][start+j] = VD['dy'][start]
+	sc_register_time(t, '_focus_stability')
+	
 	# interpolate
 	t = cv2.getTickCount()
 	if not do_pad:
@@ -2825,18 +2175,19 @@ def smart_vid_crop(video_path, CP=None,
 			VD = sc_shift_time(VD, CP['shift_time'])
 	sc_register_time(t, '_shift')
 
-
+	# render videos 
 	t = cv2.getTickCount()
 	if do_pad:
 		if save_vid:
+			# render padded video
 			print(' - Rendering padded video')
 			sc_render_padded(VD, CP, 
 							 vid_path, final_vid_fn,
 							 verbose=verbose)
 		smart_crop_results['result'] = 'padded'
 	else:
-		# render final video and demo
 		if save_vid:
+			# render final cropped video and demo
 			print(' - Rendering outputs')
 			sc_renderer(VD, CP,
 						vid_path, final_vid_fn, demo_fn,
@@ -2881,6 +2232,9 @@ def smart_vid_crop(video_path, CP=None,
 	return VD, smart_crop_results
 
 
+def smart_crop_version():
+	return '4.0'
+
 
 if __name__ == '__main__':
 	import os
@@ -2888,6 +2242,8 @@ if __name__ == '__main__':
 
 	import statistics
 	import matplotlib.pyplot as plt
+	
+	print('\n\n ~~~ SmartVidCrop ~~~~')
 
 	if False:
 		import matplotlib.rcsetup as rcsetup
@@ -2898,12 +2254,35 @@ if __name__ == '__main__':
 		print('fname', matplotlib.matplotlib_fname())
 		input('...')
 
+	#####################################
+	#####################################
+	#####################################
+
+	# setup initial crop params
+	crop_params_test = sc_init_crop_params(use_best_settings=False)
+	
 	# test super params
-	video_limit = 200
+	vid_overide = None
 	pause = False
+	replace_existing = True
+	do_result = False
+	do_plots = False
+	do_demo = False
+	print_eval_frames = False
+	extensions = ['*.AVI','*.avi','*.MP4','*.mp4','*.MOV','*.mov']
+	aspect_ratios_to_test = ['1:3', '3:1']
+	temp_path = None
+	
+	# paths
+	vids_in_dir = os.path.join(root_path, 'DHF1k', '')
+	results_out_top = os.path.join(root_path, 'results', '')
+	os.makedirs(results_out_top, exist_ok=True)
+	
+	#####################################
+	#####################################
+	#####################################
 
-	print('\n\n ~~~ SmartVidCrop ~~~~')
-
+	
 	# check annotations
 	print(' Checking "annotations" directory...')
 	if not os.path.isdir(os.path.join(root_path, 'annotations')):
@@ -2953,83 +2332,68 @@ if __name__ == '__main__':
 		print(' %d' % len(annots[i][0]), end='')
 	print(' videos')
 
-	# setup initial crop params
-	crop_params_test = sc_init_crop_params()
-	crop_params_test['exit_on_spread_sal'] = False
-	crop_params_test['exit_on_low_cvrg'] = False
-	crop_params_test['com_km'] = False
-	crop_params_test['t_border'] = -1						  
-
 	# setup tests
-	print_eval_frames = False
-	tests = {}					
-	for t in [200]:
-		for use3d in [False]:
-			for min_c in [26]:
-				for min_t_cut in [1.0]:
-					for max_cuts in [0]:
-						crop_params_test['t_threshold'] = t
-						crop_params_test['use_3d'] = use3d
-						crop_params_test['no_extra_cuts'] = max_cuts
-						crop_params_test['hdbscan_min'] = min_c
-						crop_params_test['min_t_cut'] = min_t_cut
-						test_name = 't=' + str(t) + \
-									'_3d=' + str(int(use3d)) + \
-									'_mc=' + str(max_cuts) + \
-									'_cs=' + str(min_c) + \
-									'_mt=' + str(min_t_cut)
-						tests[test_name] = crop_params_test.copy()
-						
-
+	# to setup more tests alter the parameters of "crop_params_test"
+	# and re-assign a copy of it in the "test" dictionary under an indicative key
+	tests = {}	
+	tests['default_config'] = crop_params_test.copy()
+	
+	# print test names
 	print(' Tests::')
 	for i, test_name in enumerate(tests.keys()):
 		print(' %3d: %s' % (i + 1, str(test_name)))
-	input('...')
-
-	# paths
-	vids_in_dir = os.path.join(root_path, 'DHF1k', '')
-	pkl_out_dir = os.path.join(root_path, '__pkls', '')
-	results_out_top = os.path.join(root_path, 'results', '')
-	os.makedirs(pkl_out_dir, exist_ok=True)
-	os.makedirs(results_out_top, exist_ok=True)
 
 	# input videos
-	vid_paths = glob.glob(os.path.join(vids_in_dir, '*.AVI'))
+	vid_paths = []
+	if vid_overide is not None:
+		vid_paths = [os.path.join(vids_in_dir, vid_overide)]
+	else:
+		for extension in extensions:
+			vid_paths_tmp = glob.glob(os.path.join(vids_in_dir, extension))
+			vid_paths = vid_paths + vid_paths_tmp
 	vid_paths.sort()
-	print(' Videos:: found %d videos' % min(video_limit,len(vid_paths)))
+	print(' Videos:: found %d videos' % len(vid_paths))
 	
 	# start
 	for test_name in tests.keys():
-		for iorp, orp in enumerate(['1:3', '3:1']):  # '4:5', '1:1'
+		for iorp, orp in enumerate(aspect_ratios_to_test):  # '4:5', '1:1'
 			cur_crop_params = tests[test_name]
 			cur_crop_params['out_ratio'] = orp
 			for i, vid_path in enumerate(vid_paths):
 				
-				# check limit
-				if i==video_limit:
-					break
 					
 				# check if we already processed the session
 				vid_fn = os.path.basename(vid_path).split('.')[0]
 				suffix = vid_fn + '_' + str(orp.replace(':', '-'))
 				if os.path.isfile(os.path.join(results_out_top, test_name, suffix+'.txt')) and\
 					os.path.isfile(os.path.join(results_out_top, test_name, suffix+'_info.txt')):
-					print('skipping:', test_name, suffix)
-					continue
+					if not replace_existing:
+						print('skipping:', test_name, suffix)
+						continue
 					
 				if os.path.isfile(os.path.join(results_out_top, test_name, suffix+'.txt')) and\
 					os.path.isfile(os.path.join(results_out_top, test_name, suffix+'_info.txt')):
-					print('skipping:', test_name, suffix)
-					continue
-					
+					if not replace_existing:
+						print('skipping:', test_name, suffix)
+						continue
+						
 				# setup paths and params
 				results_out = os.path.join(results_out_top, str(test_name))
-				demo_fn = os.path.join(results_out, suffix + '_demo')
-				demo_fn = ''
-				plots_fn = os.path.join(results_out, suffix + '_plot.png')
-				plots_fn = ''
+				if do_demo:
+					demo_fn = os.path.join(results_out, suffix + '_demo')
+				else:
+					demo_fn = ''
+				if do_plots:
+					plots_fn = os.path.join(results_out, suffix + '_plot.png')
+				else:
+					plots_fn = ''
 				final_vid_fn=os.path.join(results_out, suffix)
 				pathlib.Path(results_out).mkdir(parents=True, exist_ok=True)
+				if print_eval_frames:
+					eval_frames_dir = os.path.join(results_out, suffix+'_eval_frames')
+					pathlib.Path(eval_frames_dir).mkdir(parents=True, exist_ok=True)
+				else:
+					eval_frames_dir = ''
 				print('\n\n')
 				print(' ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
 				print(' video (%d/%d): %s' % (i + 1, len(vid_paths), vid_path))
@@ -3040,9 +2404,10 @@ if __name__ == '__main__':
 				vid_data, info_dict = smart_vid_crop(vid_path, cur_crop_params,
 												demo_fn=demo_fn,
 												final_vid_fn=final_vid_fn,
+												frames_dir=eval_frames_dir,
 												plots_fn=plots_fn,
 												temp_path=temp_path,
-												verbose=True, save_vid=False)
+												verbose=True, save_vid=do_result)
 
 				# write report to txt file
 				with open(os.path.join(results_out, suffix + '_info.txt'), 'w') as stfp:
@@ -3059,44 +2424,52 @@ if __name__ == '__main__':
 					print(' Bounding boxes are not available!')
 					print(' Cannot proceed to evaluation!')
 				else:
-					print(' Evaluation::')
-					if print_eval_frames:
-						cap = cv2.VideoCapture(vid_path)
-					user_evals = []
-					for user in range(6):
-						frames_ious = []
-						for iframe, bb in enumerate(vid_data['bbs']):
-							# [i users][k mode][j video][l frame]
-							gt_d = annots[user][iorp][vid_inds.index(int(vid_fn))][iframe]
-							if orp == '1:3':
-								cw = 120
-								ch = 360
-								gt_bb = [gt_d, 0, gt_d + cw, ch]
-								bb[2] = bb[0] + 120
-								bb[3] = 360
-							elif orp == '3:1':
-								cw = 640
-								ch = 214
-								gt_bb = [0, gt_d, cw, gt_d + ch]
-								bb[2] = 640
-								bb[3] = bb[1] + 214
+					do_eval = True
+					try:
+						foo = int(vid_fn)
+					except:
+						do_eval = False
+						
+					if do_eval:
+						print(' Evaluation::')
+						if print_eval_frames:
+							cap = cv2.VideoCapture(vid_path)
+						user_evals = []
+						for user in range(6):
+							frames_ious = []
+							for iframe, bb in enumerate(vid_data['bbs']):
+								# [i users][k mode][j video][l frame]
+								gt_d = annots[user][iorp][vid_inds.index(int(vid_fn))][iframe]
+								if orp == '1:3':
+									cw = 120
+									ch = 360
+									gt_bb = [gt_d, 0, gt_d + cw, ch]
+									bb[2] = bb[0] + 120
+									bb[3] = 360
+								elif orp == '3:1':
+									cw = 640
+									ch = 214
+									gt_bb = [0, gt_d, cw, gt_d + ch]
+									bb[2] = 640
+									bb[3] = bb[1] + 214
 
-							frames_ious.append(bb_intersection_over_union(gt_bb, bb))
+								frames_ious.append(bb_intersection_over_union(gt_bb, bb))
 
-							if print_eval_frames:
-								print(gt_bb, '-', bb)
-								flag, frame = cap.read()
-								frame = cv2.rectangle(frame, (gt_bb[0], gt_bb[1]), (gt_bb[2], gt_bb[3]),
-													  (0, 255, 0), 1)  # green gt
-								frame = cv2.rectangle(frame, (bb[0], bb[1]), (bb[2], bb[3]),
-													  (255, 0, 0), 1)  # blue result
-								cv2.imshow('video', frame)
-								cv2.waitKey(0)
-						vid_iou = statistics.mean(frames_ious)
-						user_evals.append(vid_iou)
-						print('   user #%d: %.3f' % (user + 1, vid_iou))
-					print('   mean   : %.3f' % (statistics.mean(user_evals)))
-					print('\n Done processing video "%s" with "%s"\n' % (vid_fn, test_name))
+								if print_eval_frames:
+									print(gt_bb, '-', bb)
+									flag, frame = cap.read()
+									frame = cv2.rectangle(frame, (gt_bb[0], gt_bb[1]), (gt_bb[2], gt_bb[3]),
+														  (0, 255, 0), 1)  # green gt
+									frame = cv2.rectangle(frame, (bb[0], bb[1]), (bb[2], bb[3]),
+														  (255, 0, 0), 1)  # blue result
+									cv2.imshow('video', frame)
+									cv2.waitKey(0)
+									
+							vid_iou = statistics.mean(frames_ious)
+							user_evals.append(vid_iou)
+							print('   user #%d: %.3f' % (user + 1, vid_iou))
+						print('   mean   : %.3f' % (statistics.mean(user_evals)))
+						print('\n Done processing video "%s" with "%s"\n' % (vid_fn, test_name))
 
 				# clean up
 				del vid_data
@@ -3106,6 +2479,7 @@ if __name__ == '__main__':
 				if pause:
 					input('...next video?')
 					
-
+	# done
+	print(' All tests completed!')
 
 
