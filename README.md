@@ -42,30 +42,30 @@ After publishing our ICIP paper we introduced two changes in our algorihtm that 
 <thead>
   <tr>
     <th rowspan="2"><b>parameters set</b></th>
-    <th colspan="2"><b>1:3 target aspect ratio</b></th>
-    <th colspan="2"><b>3:1 target aspect ratio</b></th>
+    <th colspan="2" style="text-align:center"><b>1:3 target aspect ratio</b></th>
+    <th colspan="2" style="text-align:center"><b>3:1 target aspect ratio</b></th>
   </tr>
   <tr>
-    <td><b>mean IoU</b></td>
-    <td><b>t</b></td>
-    <td><b>mean IoU</b></td>
-    <td><b>t</b></td>
+    <td style="text-align:center"><b>mean IoU</b></td>
+    <td style="text-align:center"><b>t</b></td>
+    <td style="text-align:center"><b>mean IoU</b></td>
+    <td style="text-align:center"><b>t</b></td>
   </tr>
 </thead>
 <tbody>
   <tr>
-    <td>paper settings (default)</td>
-    <td>49.9%</td>
-    <td>19%</td>
-    <td>71.4%</td>
-    <td>20%</td>
+    <td style="text-align:center">paper settings (default)</td>
+    <td style="text-align:center">49.9%</td>
+    <td style="text-align:center">19%</td>
+    <td style="text-align:center">71.4%</td>
+    <td style="text-align:center">20%</td>
   </tr>
   <tr>
     <td>focus stability mechanism<br>+ optimized settings</td>
-    <td>52.3%</td>
-    <td>14%</td>
-    <td>75.3%</td>
-    <td>13%</td>
+    <td style="text-align:center">52.3%</td>
+    <td style="text-align:center">14%</td>
+    <td style="text-align:center">75.3%</td>
+    <td style="text-align:center">13%</td>
   </tr>
 </tbody>
 </table>
