@@ -46,9 +46,9 @@ After publishing our ICIP paper we introduced two changes in our algorihtm that 
     <th colspan="2" style="text-align:center"><b>3:1 aspect ratio</b></th>
   </tr>
   <tr>
-    <td style="text-align:center"><b>mean IoU</b></td>
+    <td style="text-align:center"><b>mean<br>IoU</b></td>
     <td style="text-align:center"><b>t</b></td>
-    <td style="text-align:center"><b>mean IoU</b></td>
+    <td style="text-align:center"><b>mean<br>IoU</b></td>
     <td style="text-align:center"><b>t</b></td>
   </tr>
 </thead>
