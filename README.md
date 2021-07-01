@@ -42,8 +42,8 @@ After publishing our ICIP paper we introduced two changes in our algorihtm that 
 <thead>
   <tr>
     <th rowspan="2"><b>parameters set</b></th>
-    <th colspan="2" style="text-align:center"><b>1:3 target aspect ratio</b></th>
-    <th colspan="2" style="text-align:center"><b>3:1 target aspect ratio</b></th>
+    <th colspan="2" style="text-align:center"><b>1:3 aspect ratio</b></th>
+    <th colspan="2" style="text-align:center"><b>3:1 aspect ratio</b></th>
   </tr>
   <tr>
     <td style="text-align:center"><b>mean IoU</b></td>
