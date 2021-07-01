@@ -38,12 +38,37 @@ The software was implemented in Python 3 and the source code is included in the 
 
 After publishing our ICIP paper we introduced two changes in our algorihtm that achieve a better score on the retargetVid dataset than the one reported in the paper. The first update is the introduction of a "focus stability" mechanism in order to reject sudden changes in focus, while the second update is an optimized set of parameters. To deploy both of the aforementioned updates call the *sc_init_crop_params* method changing the optional argument *use_best_settings* to True. The default settings of the *smartVidCrop.py* script will reproduce the results of our ICIP paper. In the following table we report the resulting gain in terms of mean IoU.
 
-| parameters set  | mean IoU on RetargetVid <br />(1:3 target aspect ratio)| mean IoU on RetargetVid <br />(3:1 target aspect ratio)|
-| --- | :-: | :-: |
-| paper settings (default) | 49.9%  | 71.4% |
-| focus stability mechanism<br />+ optimized settings| 52.8% | 75.3% |
-
-
+<table>
+<thead>
+  <tr>
+    <th rowspan="2">parameters set</th>
+    <th colspan="2">1:3 target aspect ratio<br></th>
+    <th colspan="2">3:1 target aspect ratio</th>
+  </tr>
+  <tr>
+    <td>mean IoU<br></td>
+    <td>execution time to<br>video duration ratio</td>
+    <td>mean IoU</td>
+    <td>execution time to<br>video duration ratio</td>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>paper settings (default)</td>
+    <td>49.9%</td>
+    <td>19%</td>
+    <td>71.4%</td>
+    <td>20%</td>
+  </tr>
+  <tr>
+    <td>focus stability mechanism<br>+ optimized settings</td>
+    <td>52.3%</td>
+    <td>14%</td>
+    <td>75.3%</td>
+    <td>13%</td>
+  </tr>
+</tbody>
+</table>
 
 
 ## Annotator Software
