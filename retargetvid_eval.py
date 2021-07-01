@@ -5,8 +5,6 @@ import sys
 import zipfile
 import time
 
-verbose_checking = False
-verbose_resuts = False
 
 # Computes the IoU of two rectangles
 def bb_intersection_over_union(boxA, boxB):
@@ -29,12 +27,18 @@ def bb_intersection_over_union(boxA, boxB):
 	return iou
 
 
-# get path that the current script file is in
+# setup paths and check (optional) command line argument
 root_path = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
+runs_folder = 'results'
+annotations_folder = 'annotations'
+if len(sys.argv)>1:
+	runs_folder = sys.argv[1]
+print(' Read results from "%s" directory' % runs_folder)
+	
 
 # check annotations
 print(' Checking "annotations" directory...')
-if not os.path.isdir(os.path.join(root_path, 'annotations')):
+if not os.path.isdir(os.path.join(annotations_folder)):
 	print(' Error: "annotations" directory not found. Please download annotations from github repository.')
 available_annots = []
 
@@ -86,7 +90,6 @@ for i in range(len(annots)):
 		print('Error in annotations videos count.\n Please redownload from the original GitHub repository.')
 	
 # scan for runs in the results folder
-runs_folder = 'results'
 runs = [os.path.split(f)[-1] for f in os.scandir(runs_folder) if f.is_dir()]
 runs.sort()
 
@@ -114,8 +117,8 @@ for run in runs:
 					#print(os.path.split(fn)[-1],':',frame_counts[vid_ind],'-', len(lines))
 					frame_count_errors_count+=1
 	print(' - %-30s (file errors:%d + frame count errors:%d)' % (run,file_errors_count,frame_count_errors_count))
-	if file_errors_count==0:
-		runs_valid.append(run)
+	#if file_errors_count==0:
+	runs_valid.append(run)
 print(' valid runs::')
 runs = runs_valid
 for run in runs:
@@ -163,32 +166,17 @@ for i_run,run in enumerate(runs):
 					try:
 						gt_bb = annots[user][ar][vid_ind][iframe]
 					except:
-						if verbose_checking:
-							print('  could not find ground-truth annot! ',
-								  '  user:%d,ar:%s,video:%d,frame:%d' % (user,ar,vid_ind,iframe))
-						missing_files[run] += 1
-						continue
-						
+						print('  could not find ground-truth annot! ',
+							  '  user:%d,ar:%s,video:%d,frame:%d' % (user,ar,vid_ind,iframe))
 					try:
 						method_bb = bbs[iframe]
 					except:
-						if verbose_checking:
-							print('  could not find annotation! ',
-							      '  run:%s,ar:%s,video:%d,frame:%d' % (run,ar,vid_ind,iframe))
-						missing_files[run] += 1
-						continue
+						print('  could not find annotation! ',
+							  '  run:%s,ar:%s,video:%d,frame:%d' % (run,ar,vid_ind,iframe))
 							  
-					if gt_bb is None:
-						if verbose_checking:
-							print(' Ground-truth bounding box is None...' % run)
-						missing_files[run] += 1
-						continue
-						
-					if method_bb is None:
-						if verbose_checking:
-							print(' Method (%s) bounding box is None...')
-						missing_files[run] += 1
-						continue
+					if gt_bb is None or method_bb is None:
+						print('Ground-truth bounding box or method bounding box is None...')
+						break
 					
 					### FIX: zero possible negative values that may occur 
 					### (necessary for evaluating early implementations)
@@ -201,12 +189,7 @@ for i_run,run in enumerate(runs):
 					gt_bb[2] = gt_bb[2] if gt_bb[2]>0 else 0
 					gt_bb[3] = gt_bb[3] if gt_bb[3]>0 else 0
 
-					try:
-						frames_ious.append(bb_intersection_over_union(gt_bb, method_bb))
-					except:
-						missing_files[run] += 1
-						continue
-					
+					frames_ious.append(bb_intersection_over_union(gt_bb, method_bb))
 				vid_iou = statistics.mean(frames_ious)
 				evals[run][ar][user].append(vid_iou)
 		
@@ -240,19 +223,20 @@ for i_run,run in enumerate(runs):
 						
 	print(' ---> %.3fs' % (time.time() - start_time))
 	
-# evaluation results output
-print('\n Evaluation:')
-if verbose_resuts:
-	s_info_out = ('%-30s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s' % \
-				 ('Method',
-				  'Worst','Best','Mean', 'ttm','tta','tcm','tca','ccm','cca','ecm','eca',
-				  'Worst','Best','Mean', 'ttm','tta','tcm','tca','ccm','cca','ecm','eca', 'mf'))
+with open('eval_current.txt', 'w') as fp:
+	print('\n Evaluation:')
+	s_info_out = ('%-36s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s,%-6s' % \
+			     ('Method',
+			      'Worst','Best','Mean', 'ttm','tta','tcm','tca','ccm','cca','ecm','eca',
+			      'Worst','Best','Mean', 'ttm','tta','tcm','tca','ccm','cca','ecm','eca', 'mf'))
 	print(s_info_out)
 	fp.write(s_info_out+'\n')
 
 	for run in evals.keys():
 		run_name = run.replace('_',',')
-		s_info_out = '%-30s,' % (run_name.replace('_',','))
+		if 'mt=1.0_rf=' not in run_name:
+			run_name = run_name.replace('_mt=1.0','_mt=1.0_rf=1')
+		s_info_out = '%-36s,' % (run_name.replace('_',','))
 		for ar in evals[run].keys():
 			users_ious = []
 			for user in range(6):
@@ -285,6 +269,7 @@ if verbose_resuts:
 				cuts_extra_max = max(stats_dict[run][ar]['cuts_extra'])
 				cuts_extra_avg = statistics.mean(stats_dict[run][ar]['cuts_extra'])
 				
+				
 			s_info_out += '%05.3f,%05.3f,%05.3f,%05.3f,%05.3f,%05.3f,%05.3f,%05.3f,%05.3f,%05.3f,%05.3f,' % \
 												(worst_score,best_score,mean_score,
 												 t_total_max, t_total_avg,
@@ -296,31 +281,6 @@ if verbose_resuts:
 		
 		print(s_info_out)
 		fp.write(s_info_out+'\n')			
-			
-else:
-
-	s_info_out = ('%-30s %6s, %6s, %6s, %6s, %6s, %6s' % ('Method',
-				  'Worst','Best','Mean',
-				  'Worst','Best','Mean',))
-	print(s_info_out)
 
 
-	for run in evals.keys():
-		run_name = run.replace('_',',')
-		s_info_out = '%-30s ' % (run_name.replace('_',','))
-		for ar in evals[run].keys():
-			users_ious = []
-			for user in range(6):
-				users_ious.append(statistics.mean(evals[run][ar][user]))
-			best_score = max(users_ious)*100
-			worst_score = min(users_ious)*100
-			mean_score = statistics.mean(users_ious)*100
-
-				
-			s_info_out += '%6.1f, %6.1f, %6.1f, ' % \
-												(worst_score,best_score,mean_score)
-						
-
-		
-		print(s_info_out)
 	
