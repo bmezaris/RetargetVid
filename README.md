@@ -36,7 +36,7 @@ for you to quickly replicate the results of our paper (see the first citation in
  
 The software was implemented in Python 3 and the source code is included in the *retargetvid_eval.py* file of this repository.
 
-After publishing our ICIP 2021 paper we introduced two changes in our algorihtm that achieve a better score on the retargetVid dataset than the one reported in the paper. The first update is the introduction of a "focus stability" mechanism in order to reject sudden changes in focus, while the second update is an optimized set of parameters. To deploy both of the aforementioned updates call the *sc_init_crop_params* method changing the optional argument *use_best_settings* to True. The default settings of the *smartVidCrop.py* script will reproduce the results of our ICIP paper. In the following table we report the resulting gain in terms of average IoU across all 6 annotators of the RetargetVid dataset ("mean IoU"; higher values are better) and the ratio of execution time in our test PC to video duration ("t"; lower values are better, and a value lower than 100% indicates faster-than-realtime processing).
+After publishing our ICIP 2021 paper we introduced three changes in our algorihtm that achieve a better score on the retargetVid dataset than the one reported in the paper. The first update is the introduction of a "focus stability" mechanism in order to reject sudden changes in focus, while the second update is the replacement of LOESS method with a Savitzky-Golay filter that visual inspection of the results showed a smoohter movement of the crop window. Finally, the third update is an optimized set of parameters. To deploy both of the aforementioned updates call the *sc_init_crop_params* method changing the optional argument *use_best_settings* to True. The default settings of the *smartVidCrop.py* script will reproduce the results of our ICIP paper. In the following table we report the resulting gain in terms of average IoU across all 6 annotators of the RetargetVid dataset ("mean IoU"; higher values are better) and the ratio of execution time in our test PC to video duration ("t"; lower values are better, and a value lower than 100% indicates faster-than-realtime processing).
 
 <table>
 <thead>
@@ -62,7 +62,7 @@ After publishing our ICIP 2021 paper we introduced two changes in our algorihtm 
   </tr>
   <tr>
     <td>focus stability mechanism<br>+ optimized settings</td>
-    <td style="text-align:center;">52.3%</td>
+    <td style="text-align:center;">52.9%</td>
     <td style="text-align:center;">14%</td>
     <td style="text-align:center;">75.3%</td>
     <td style="text-align:center;">13%</td>
