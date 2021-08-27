@@ -216,16 +216,16 @@ def sc_init_crop_params(print_dict=False, use_best_settings=False):
 	if use_best_settings:
 		crop_params['t_threshold'] 		= 90
 		crop_params['hdbscan_min'] 		= 5
-		crop_params['hdbscan_min_samples'] = 3
+		crop_params['hdbscan_min_samples'] 	= 3
 		crop_params['min_d_jump']		= 1
-		crop_params['resize_factor'] 	= 4
+		crop_params['resize_factor'] 		= 4
 		crop_params['op_close'] 		= True
 		crop_params['value_bias'] 		= 1.0
 		crop_params['select_sum'] 		= 1 ####
-		crop_params['focus_stability'] 	= True
-		crop_params['foces_stab_t'] 	= 60 # 50 # 50.750
-		crop_params['foces_stab_s'] 	= 1.5
-		crop_params['t_border'] 		= 60
+		crop_params['focus_stability'] 		= True
+		crop_params['foces_stab_t'] 		= 60 # 50 # 50.750
+		crop_params['foces_stab_s'] 		= 1.5
+		crop_params['t_border'] 		= -1
 		crop_params['lp_filt'] 			= 1
 		crop_params['lp_cutoff'] 		= 1
 		crop_params['lp_order'] 		= 2
@@ -2746,24 +2746,6 @@ if __name__ == '__main__':
 	tests = {}	
 	if use_default_config:
 		tests['default_config'] = crop_params_test.copy()
-	
-	crop_params_test['t_border']=-1
-	
-	test_name = 't=90'
-	crop_params_test['t_threshold']=90
-	tests[test_name] = crop_params_test.copy()
-	
-	test_name = 't=100'
-	crop_params_test['t_threshold']=100
-	tests[test_name] = crop_params_test.copy()
-	
-	test_name = 't=110'
-	crop_params_test['t_threshold']=110
-	tests[test_name] = crop_params_test.copy()
-	
-	test_name = 't=120'
-	crop_params_test['t_threshold']=120
-	tests[test_name] = crop_params_test.copy()
 
 	print(' Tests::')
 	for i, test_name in enumerate(tests.keys()):
