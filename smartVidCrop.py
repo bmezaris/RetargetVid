@@ -2633,7 +2633,7 @@ if __name__ == '__main__':
 	crop_params_test['exit_on_low_cvrg'] = False
 
 	# test super params
-	vid_overide = Non
+	vid_overide = None
 	pause = False
 	replace_existing = True
 	do_result = False
