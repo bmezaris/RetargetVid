@@ -9,6 +9,8 @@ from numpy.lib.stride_tricks import as_strided
 import pickle
 import gc
 import ntpath
+import zipfile
+
 
 # for calling ffmpeg to merge video and sound
 import subprocess
@@ -2696,15 +2698,17 @@ if __name__ == '__main__':
 	
 	for annot_index in [1, 2, 3, 4, 5, 6]:
 		available_annots.append('annotator_' + str(annot_index))
+		zip_path = os.path.join(root_path, 'annotations', 'annotator_' + str(annot_index) + '.zip')
+
 		c_a_dir = os.path.join(root_path, 'annotations', 'annotator_' + str(annot_index))
 		if not os.path.isdir(c_a_dir):
-			print(' "annotator_' + str(annot_index) + '" directory not found.')
-			print(' Please download annotations from the original github repository.')
-			sys.exit(0)
+			if not os.path.isfile(zip_path):
+				print(' "annotator_' + str(annot_index) + '" directory and zip file not found.')
+				print(' Please download annotations from the original github repository.')
+				sys.exit(0)
 		else:
 			continue
 
-		zip_path = os.path.join(root_path, 'annotations', 'annotator_' + str(annot_index) + '.zip')
 		if not os.path.isfile(zip_path):
 			print(' ' + zip_path + ' file not found. ')
 			print(' Please download files from the original github repository.')
