@@ -114,6 +114,8 @@ organization={IEEE}
 }
 ```
 
+The full text of our above-referenced paper can be found here: [https://doi.org/10.1109/ICIP42928.2021.9506390](https://doi.org/10.1109/ICIP42928.2021.9506390)
+
 The original videos are taken from the [DHF1k](https://github.com/wenguanwang/DHF1K) dataset, which was introduced in the following work:
 
 ```
