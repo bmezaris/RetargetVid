@@ -1,0 +1,1 @@
+Download pre-trained model weights (transnet_model-F16_L3_S2_D256.*) from https://github.com/soCzech/TransNet/tree/master/model
