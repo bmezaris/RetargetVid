@@ -60,7 +60,7 @@ sys.path.insert(0, transnetv1_full_path)
 print(' loading transnet v1 model')
 import transnetv1_handler
 stn_params = transnetv1_handler.ShotTransNetParams()
-stn_params.CHECKPOINT_PATH = os.path.join(root_path, '3rd_party_libs', 'transnetv1', 'shot_trans_net-F16_L3_S2_D256')
+stn_params.CHECKPOINT_PATH = os.path.join(root_path, '3rd_party_libs', 'transnetv1', 'transnet_model-F16_L3_S2_D256')
 trans_threshold = 0.1
 transnet_model = transnetv1_handler.ShotTransNet(stn_params, session=sess)
 TRANSNET_H = 27
