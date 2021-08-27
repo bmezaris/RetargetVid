@@ -52,49 +52,19 @@ root_path = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
 ### 3rd party libs loading
 # DCNN-based shot segmentation using TransNet
 import tensorflow as tf
-tfv = str(tf.__version__)
-if tfv[0]=='1':
-	gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.1)
-	sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
-	transnetv1_full_path = os.path.join(root_path, '3rd_party_libs', 'transnetv1')
-	print(' (adding path %s)' % transnetv1_full_path)
-	sys.path.insert(0, transnetv1_full_path)
-	print(' loading transnet v1 model')
-	import transnetv1_handler
-	stn_params = transnetv1_handler.ShotTransNetParams()
-	stn_params.CHECKPOINT_PATH = os.path.join(root_path, '3rd_party_libs', 'transnetv1', 'shot_trans_net-F16_L3_S2_D256')
-	trans_threshold = 0.1
-	transnet_model = transnetv1_handler.ShotTransNet(stn_params, session=sess)
-	TRANSNET_H = 27
-	TRANSNET_W = 48
-else:
-	gpus = tf.config.experimental.list_physical_devices('GPU')#Get GPU list
-	tf.config.experimental.set_virtual_device_configuration(gpus[0], [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=2048)])
-	force_transnet1 = False
-	if force_transnet1:
-		gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=0.1)
-		sess = tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(gpu_options=gpu_options))
-		transnetv1_full_path = os.path.join(root_path, '3rd_party_libs', 'transnetv1')
-		print(' (adding path %s)' % transnetv1_full_path)
-		sys.path.insert(0, transnetv1_full_path)
-		print(' loading transnet v1 model')
-		import transnetv1_handler
-		stn_params = transnetv1_handler.ShotTransNetParams()
-		stn_params.CHECKPOINT_PATH = os.path.join('3rd_party_libs', 'transnetv1', 'shot_trans_net-F16_L3_S2_D256')
-		trans_threshold = 0.1
-		transnet_model = transnetv1_handler.ShotTransNet(stn_params, session=sess)
-		TRANSNET_H = 27
-		TRANSNET_W = 48
-	else:
-		transnetv2_full_path = os.path.join(root_path, '3rd_party_libs', 'transnetv2', 'inference')
-		print(' (adding path %s)' % transnetv2_full_path)
-		sys.path.insert(0, transnetv2_full_path)
-		print(' loading transnet v2 model')
-		import transnetv2
-		trans_threshold = 0.5
-		transnet_model = transnetv2.TransNetV2(model_dir=os.path.join(transnetv2_full_path, 'transnetv2-weights'))
-		TRANSNET_H = 27
-		TRANSNET_W = 48
+gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.1)
+sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
+transnetv1_full_path = os.path.join(root_path, '3rd_party_libs', 'transnetv1')
+print(' (adding path %s)' % transnetv1_full_path)
+sys.path.insert(0, transnetv1_full_path)
+print(' loading transnet v1 model')
+import transnetv1_handler
+stn_params = transnetv1_handler.ShotTransNetParams()
+stn_params.CHECKPOINT_PATH = os.path.join(root_path, '3rd_party_libs', 'transnetv1', 'shot_trans_net-F16_L3_S2_D256')
+trans_threshold = 0.1
+transnet_model = transnetv1_handler.ShotTransNet(stn_params, session=sess)
+TRANSNET_H = 27
+TRANSNET_W = 48
 
 # DCNN-based Saliency detection using UNISAL
 import torch
