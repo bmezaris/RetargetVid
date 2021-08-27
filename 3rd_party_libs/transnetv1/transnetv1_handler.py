@@ -93,7 +93,10 @@ class ShotTransNet:
 			   list(frames.shape[2:]) == [self.params.INPUT_HEIGHT, self.params.INPUT_WIDTH, 3],\
 			" [ShotTransNet] Input shape must be [batch, frames, height, width, 3]."
 		return self.session.run(self.predictions, feed_dict={self.inputs: frames})
-
+	
+	def predict_frames(self, frames: np.ndarray):
+		return self.predict_video(frames)
+	
 	def predict_video(self, frames: np.ndarray):
 		assert len(frames.shape) == 4 and \
 			   list(frames.shape[1:]) == [self.params.INPUT_HEIGHT, self.params.INPUT_WIDTH, 3], \
