@@ -2628,36 +2628,26 @@ if __name__ == '__main__':
 	print('\n\n ~~~ SmartVidCrop ~~~~')
 
 	# setup initial crop params
-	crop_params_test = sc_init_crop_params(use_best_settings=True)
+	crop_params_test = sc_init_crop_params(use_best_settings=False)
 	crop_params_test['exit_on_spread_sal'] = False
 	crop_params_test['exit_on_low_cvrg'] = False
-	crop_params_test['t_border'] = -1
 
 	# test super params
-	vid_overide = None
-	#vid_overide = 'shepherd_clear.mp4'
-	#vid_overide = '001.AVI'
-	
+	vid_overide = Non
 	pause = False
 	replace_existing = True
 	do_result = False
 	do_plots = False
 	do_demo = False
 	print_eval_frames = False
-	use_default_config = False
 	extensions = ['*.AVI','*.avi','*.MP4','*.mp4','*.MOV','*.mov']
 	aspect_ratios_to_test = ['1:3', '3:1']
-	#aspect_ratios_to_test = ['1:3']
 	temp_path = None
-	#temp_path = os.path.join(root_path, 'temp')
 	
 	# paths
 	vids_in_dir = os.path.join(root_path, 'DHF1k', '')
-	#vids_in_dir = os.path.join(root_path, 'vids', '')
 	results_out_top = os.path.join(root_path, 'results', '')
 	os.makedirs(results_out_top, exist_ok=True)
-	
-
 	
 	# check annotations
 	print(' Checking "annotations" directory...')
@@ -2709,14 +2699,10 @@ if __name__ == '__main__':
 	for i in range(len(annots)):
 		print(' %d' % len(annots[i][0]), end='')
 	print(' videos')
-
-
 	
 	# setup tests
-	tests = {}	
-	if use_default_config:
-		tests['default_config'] = crop_params_test.copy()
-
+	tests = {}
+	tests['default_config'] = crop_params_test.copy()
 	print(' Tests::')
 	for i, test_name in enumerate(tests.keys()):
 		print(' %3d: %s' % (i + 1, str(test_name)))
