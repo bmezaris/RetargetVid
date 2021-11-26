@@ -62,7 +62,7 @@ After publishing our IEEE ICIP 2021 paper we introduced four additional changes 
   </tr>
   <tr>
     <td>ISM 2021 paper settings (by changing the optional argument *use_best_settings* to True)</td>
-   <td style="text-align:center;"><u>52.9%</u></td>
+   <td style="text-align:center; text-decoration:underline">52.9%</td>
     <td style="text-align:center;">13%</td>
     <td style="text-align:center;">75.3%</td>
     <td style="text-align:center;">14%</td>
