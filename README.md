@@ -36,7 +36,7 @@ for you to quickly replicate the results of our paper (see the first citation in
  
 The software was implemented in Python 3 and the source code is included in the *retargetvid_eval.py* file of this repository.
  
-After publishing our ICIP 2021 paper we introduced four additional changes in our algorithm, to further improve the results reported in this paper. First, to speed-up the retargeting process we spatially sub-sample the saliency maps that are fed into the filtering-through-clustering procedure. The second update is the introduction of a "focus stability" mechanism in order to reject sudden changes in focus, while the third update is the replacement of the LOESS method employed in the ICIP 2021 paper for time-series smoothing with a Savitzky-Golay filter, since visual inspection of the results for both approaches revealed that the latter yields a smoother crop window movement. Finally, we employed an optimized set of parameters. To deploy all of the aforementioned updates, call the *sc_init_crop_params* method changing the optional argument *use_best_settings* to True. The default settings of the *smartVidCrop.py* script will reproduce the results of our ICIP paper. In the following table we report the resulting gain in terms of average IoU across all 6 annotators of the RetargetVid dataset ("mean IoU"; higher values are better) and the ratio of execution time in our test PC to video duration ("t"; lower values are better, and a value lower than 100% indicates faster-than-realtime processing).
+After publishing our IEEE ICIP 2021 paper we introduced four additional changes in our algorithm, to further improve the results reported in this paper. The imporved algorith is presented in our IEEE ISM 2021 paper. The updates reported in the latter ISM 2021 paper are as follows: First, to speed-up the retargeting process we spatially sub-sample the saliency maps that are fed into the filtering-through-clustering procedure. The second update is the introduction of a "focus stability" mechanism in order to reject sudden changes in focus, while the third update is the replacement of the LOESS method employed in the ICIP 2021 paper for time-series smoothing with a Savitzky-Golay filter, since visual inspection of the results for both approaches revealed that the latter yields a smoother crop window movement. Finally, we employed an optimized set of parameters. To deploy all of the aforementioned updates, call the *sc_init_crop_params* method changing the optional argument *use_best_settings* to True. The default settings of the *smartVidCrop.py* script will reproduce the results of our ICIP paper. In the following table we report the resulting gain in terms of average IoU across all 6 annotators of the RetargetVid dataset ("mean IoU"; higher values are better) and the ratio of execution time in our test PC to video duration ("t"; lower values are better, and a value lower than 100% indicates faster-than-realtime processing).
 
 <table>
 <thead>
@@ -54,14 +54,14 @@ After publishing our ICIP 2021 paper we introduced four additional changes in ou
 </thead>
 <tbody>
   <tr>
-    <td>paper settings (default)</td>
+    <td>ICIP 2021 paper settings (default)</td>
     <td style="text-align:center;">49.9%</td>
     <td style="text-align:center;">19%</td>
     <td style="text-align:center;">71.4%</td>
     <td style="text-align:center;">20%</td>
   </tr>
   <tr>
-    <td>modified version</td>
+    <td>ISM 2021 paper settings (by changing the optional argument *use_best_settings* to True)</td>
     <td style="text-align:center;">52.9%</td>
     <td style="text-align:center;">13%</td>
     <td style="text-align:center;">75.3%</td>
@@ -103,18 +103,26 @@ To run the annotator software you will need .ΝΕΤ framework 3.1 runtimes for y
 
 ## Citations
 
-If you use any of this repository contents, please cite the following work:
+If you use any of this repository contents, please cite the following works:
 ```
 @inproceedings{kapost2021afast,
 title={A fast smart-cropping method and dataset for video retargeting},
 author={Apostolidis, Konstantinos and Mezaris, Vasileios},
-booktitle={2021 IEEE International Conference on Image Processing (ICIP)},
+booktitle={Proc. 2021 IEEE International Conference on Image Processing (ICIP)},
+year={2021},
+organization={IEEE}
+}
+
+@inproceedings{kapost2021webservice,
+title={A Web Service for Video Smart-Cropping},
+author={Apostolidis, Konstantinos and Mezaris, Vasileios},
+booktitle={Proc. 2021 IEEE Int. Symposium on Multimedia (ISM)},
 year={2021},
 organization={IEEE}
 }
 ```
 
-The full text of our above-referenced paper can be found here: [https://doi.org/10.1109/ICIP42928.2021.9506390](https://doi.org/10.1109/ICIP42928.2021.9506390)
+The full text of our above-referenced ICIP paper can be found here: [https://doi.org/10.1109/ICIP42928.2021.9506390](https://doi.org/10.1109/ICIP42928.2021.9506390)
 
 The original videos are taken from the [DHF1k](https://github.com/wenguanwang/DHF1K) dataset, which was introduced in the following work:
 
