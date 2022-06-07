@@ -17,11 +17,11 @@ Our crop window annotations for each video are in the form of text files, where 
 
 
 ## SmartVidCrop Method
-We argue that cropping methods are more suitable for video aspect ratio transformation when the minimization of semantic distortions is a prerequisite.  Therefore, we present a new, rather simple, yet fast and well-performing, video cropping method, which selects the main focus out of the multiple possible salient regions of the video by introducing a new filtering-through-clustering processing step. For our method, we utilize visual saliency to find the image regions of attention, and we employ a filtering-through-clustering technique to select the main region of focus. For more details, see the first citation in Citations section.
+We argue that cropping methods are more suitable for video aspect ratio transformation when the minimization of semantic distortions is a prerequisite. Therefore, we present a new, rather simple, yet fast and well-performing, video cropping method, which selects the main focus out of the multiple possible salient regions of the video by introducing a new filtering-through-clustering processing step. For our method, we utilize visual saliency to find the image regions of attention, and we employ a filtering-through-clustering technique to select the main region of focus. For more details, see the first citation in the Citations section.
 
 Our method is implemented in Python 3 and the main script is the *smartVidCrop.py* of this repository. You can import this to your own python scripts or run it. Running it will invoke the main method and re-produce the results of our paper. 
 
-We have also implemented a technique to assess the quality of the cropped version and opt to resort to padding in the case where the results of cropping are unsatisfactory  due to the nature of the video’s content, i.e. only a small percentage of the salient visual information can be covered by any crop window. This is due to acknowledging that a cropped version of a video cannot always retain all regions of interest of the original video. This feature is disabled by default.  If you want to enable this feature as well as adjust other parameters of our method, see "sc_init_crop_params" function in the *smartVidCrop.py*.
+We have also implemented a technique to assess the quality of the cropped version and opt to resort to padding in the case where the results of cropping are unsatisfactory due to the nature of the video’s content, i.e. only a small percentage of the salient visual information can be covered by any crop window. This is due to acknowledging that a cropped version of a video cannot always retain all regions of interest of the original video. This feature is disabled by default. If you want to enable this feature as well as adjust other parameters of our method, see "sc_init_crop_params" function in the *smartVidCrop.py*.
 
 
 ## Evaluation & Updated SmartVidCrop Method
@@ -32,11 +32,11 @@ The evaluation results are calculated as the mean similarity of all crop windows
 In the *results* directory we include two sub-directories:
 * *smartvidcrop* with the results of our method, and
 * *autoflip* with the results of Google's [AutoFlip](https://google.github.io/mediapipe/solutions/autoflip) method,
-for you to quickly replicate the results of our paper (see the first citation in Citations section).
+for you to quickly replicate the results of our paper (see the first citation in the Citations section).
  
 The software was implemented in Python 3 and the source code is included in the *retargetvid_eval.py* file of this repository.
  
-After publishing our IEEE ICIP 2021 paper we introduced four additional changes in our algorithm, to further improve the results reported in this paper. The improved algorith is presented in our IEEE ISM 2021 paper. Specifically, the updates reported in our ISM 2021 paper are as follows: First, to speed-up the retargeting process we spatially sub-sample the saliency maps that are fed into the filtering-through-clustering procedure. The second update is the introduction of a "focus stability" mechanism in order to reject sudden changes in focus, while the third update is the replacement of the LOESS method employed in the ICIP 2021 paper for time-series smoothing with a Savitzky-Golay filter, since visual inspection of the results for both approaches revealed that the latter yields a smoother crop window movement. Finally, we employed an optimized set of parameters. To deploy all of the aforementioned updates, call the *sc_init_crop_params* method changing the optional argument *use_best_settings* to True. The default settings of the *smartVidCrop.py* script will reproduce the results of our ICIP paper. In the following table we report the resulting gain in terms of average IoU across all 6 annotators of the RetargetVid dataset ("mean IoU"; higher values are better) and the ratio of execution time in our test PC to video duration ("t"; lower values are better, and a value lower than 100% indicates faster-than-realtime processing).
+After publishing our IEEE ICIP 2021 paper we introduced four additional changes in our algorithm, to further improve the results reported in this paper. The improved algorithm is presented in our IEEE ISM 2021 paper. Specifically, the updates reported in our ISM 2021 paper are as follows: First, to speed-up the retargeting process we spatially sub-sample the saliency maps that are fed into the filtering-through-clustering procedure. The second update is the introduction of a "focus stability" mechanism in order to reject sudden changes in focus, while the third update is the replacement of the LOESS method employed in the ICIP 2021 paper for time-series smoothing with a Savitzky-Golay filter, since visual inspection of the results for both approaches revealed that the latter yields a smoother crop window movement. Finally, we employed an optimized set of parameters. To deploy all of the aforementioned updates, call the *sc_init_crop_params* method changing the optional argument *use_best_settings* to True. The default settings of the *smartVidCrop.py* script will reproduce the results of our ICIP paper. In the following table we report the resulting gain in terms of average IoU across all 6 annotators of the RetargetVid dataset ("mean IoU"; higher values are better) and the ratio of execution time in our test PC to video duration ("t"; lower values are better, and a value lower than 100% indicates faster-than-realtime processing).
 
 <table>
 <thead>
@@ -78,8 +78,8 @@ The software was implemented in C# and the source code is available in the *anno
 
 
 
-## Prerequisities
-To run our SmartVidCrop method you will need Python 3. Clone this repository and make sure to download the TrnasNetV2 pretrained models files (*variables.data-00000-of-00001* and *variables.index*) from the [TransNetV2](https://github.com/soCzech/TransNetV2) repository and place them in *RetargetVid/3rd_party_libs/transnetv2/inference/transnetv2-weights/variables* directory.
+## Prerequisites
+To run our SmartVidCrop method you will need Python 3. Clone this repository and make sure to download the TransNet pretrained models files (*transnet_model-F16_L3_S2_D256.data-00000-of-00001*, *transnet_model-F16_L3_S2_D256.index* and *transnet_model-F16_L3_S2_D256.meta*) from the [TransNet](https://github.com/soCzech/TransNet/tree/master/model) repository and place them in *RetargetVid/3rd_party_libs/transnetv1/* directory.
 You must also have the following packages which can be simply installed via pip (in parenthesis you can find the recommended version to install):
 
 * TensorFlow (tensorflow-gpu==1.14)
@@ -93,11 +93,11 @@ You must also have the following packages which can be simply installed via pip 
 
 SmartVidCrop also uses the following libraries
 * [Unisal](https://github.com/rdroste/unisal)
-* [TransNetV2](https://github.com/soCzech/TransNetV2)
+* [TransNet](https://github.com/soCzech/TransNet)
 
-but these packages are already included in the 3rd_party_libs directory.
+pipbut these packages are already included in the 3rd_party_libs directory.
 
-To run the evaluator software you will just need Python 3.
+To run the evaluator software you will need Python 3.
 
 To run the annotator software you will need .ΝΕΤ framework 3.1 runtimes for your version of Windows (you can download this from [here](https://dotnet.microsoft.com/download)).
 
@@ -138,5 +138,6 @@ year={2019},
 publisher={IEEE}
 }
 ```
+
 
 
